@@ -5,12 +5,13 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle as pkl
-from scipy.ndimage import rotate, gaussian_filter
+from scipy.ndimage import rotate, gaussian_filter, zoom
 import cv2 as cv
 from modes import modelist, laser_func
 from LightPipes import * 
 from tqdm import tqdm
-
+from scipy.fft import fft2, fftshift
+import mgzip
 
 def noise_shift(im, scale):
     sh = im.shape
@@ -62,7 +63,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         intbeam = Fresnel(intbeam, z=1*cm)
         # beam = RandomIntensity(beam, np.random.randint(0, 1000), 
         #                        noise=noise*100*np.log(np.max(Intensity(beam))))
-        warp_interference = noise_shift(Intensity(intbeam), (dim/500)**2*np.random.randint(5,40))
+        warp_interference = noise_shift(Intensity(intbeam), (dim/500)**2*np.random.randint(5,20))
         beam = MultIntensity(beam, warp_interference)
 
         beam = Normal(beam)
@@ -80,26 +81,33 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
-        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(5,40))
+        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(5,20))
 
         im_avg = np.mean(im)
         im += im * np.random.random(im.shape) + np.random.random()*np.random.normal(im_avg/2, np.std(im), im.shape)
 
         im = (im + np.min(im)) / (np.max(im) + np.min(im))
 
+        im_mid = int(im.shape[0]/2)
+        im_crop = int(im.shape[0]/2.5)
+        crop_im = im[im_mid - im_crop:im_mid + im_crop, im_mid - im_crop:im_mid + im_crop]
+
+        im = zoom(crop_im, 224/im.shape[0])
+
         if save:
-            with open('Training_images/training_image' + str(i) + '.pkl', 'wb') as f:
-                pkl.dump((key, amps, im), f)
+            # Using mgzip to compress pickles
+            with mgzip.open(r'MultiMode Analysis\Training_images\training_image' + str(i) + '.pkl.gz', 'wb') as f:
+                pkl.dump((im, key), f)
             f.close()
         else:    
             images.append((im,key))
-
     return images
 
 
-ims = gererate_data(20, 2000*um, 500, modelist, 100*um, fringe_size=[0.5, 1], save = False, LG = False)
+ims = gererate_data(64, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
 
-for i, (img, k) in enumerate(ims):
-    plt.imshow(img)
-    plt.title(k)
-    plt.show()
+# for i, (img, k) in enumerate(ims):
+#     plt.imshow(img)
+#     plt.title(k)
+#     plt.show()
+
