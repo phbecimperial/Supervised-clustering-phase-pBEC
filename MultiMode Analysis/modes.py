@@ -40,17 +40,17 @@ def mode_nums():
     return [nm1, nm2]
 
 def mode_func():
-    n = randint(0,5)
+    n = randint(1,5)
     ms = []
     for i in range(n):
         newmode = mode_nums()
 
-        while any(ms) == newmode or newmode == [0,0]:
+        while any(ms) == newmode:
             newmode = mode_nums()
         ms.append(newmode)
     
-    outputs = [m == any(ms) for i,m in modes]
-
+    outputs = [m == any(ms) for i,m in modelist]
+    print(ms)
     return ms, outputs
 
 modelist = [
@@ -83,10 +83,3 @@ modelist = [
 #     'M': [[0,0], [0,1], [0,2], [1,1], [0,3]], 
 #     'Laser': laser_func
 # })
-
-
-
-print(modelist.items())
-
-for i in range(10):
-    print(modelist['Laser'])
