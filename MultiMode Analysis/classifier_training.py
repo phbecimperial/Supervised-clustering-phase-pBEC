@@ -30,14 +30,14 @@ def data_loader(num_batches, batch_size, dataset_path, split):
     ims = []
     keys = []
     for path in path_list:
-        with mgzip.open(path,'rb') as f:
+        with open(path,'rb') as f:
             item = pickle.load(f)
         ims.append(transform(item[0]))
         keys.append(item[1])
     
     xt, xT, yt, yT = train_test_split(ims, keys, train_size=split, random_state=123)
 
-    return np.split(xt,num_batches), xT, np.split(yt,num_batches), yT
+    return np.array_split(np.array(xt),num_batches), np.array(xT), np.array_split(np.array(yt),num_batches), np.array(yT)
 
 
 num_classes = 10

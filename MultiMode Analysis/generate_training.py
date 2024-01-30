@@ -96,7 +96,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with mgzip.open(r'Training_images\training_image' + str(i) + '.pkl.gz', 'wb') as f:
+            with open(r'Training_images\training_image' + str(i) + '.pkl.gz', 'wb') as f:
                 pkl.dump((im, key), f)
             f.close()
         else:    
@@ -104,7 +104,8 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     return images
 
 
-ims = gererate_data(64, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
+ims = gererate_data(1000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
+
 
 # for i, (img, k) in enumerate(ims):
 #     plt.imshow(img)
