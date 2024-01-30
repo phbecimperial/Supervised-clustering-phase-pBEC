@@ -6,7 +6,7 @@ from torchvision.transforms import v2
 from mode_classifier import ResNet, ResidualBlock
 from sklearn.model_selection import train_test_split
 from glob import glob
-import mgzip
+import lzma
 import random
 import pickle
 import gc
@@ -30,20 +30,22 @@ def data_loader(num_batches, batch_size, dataset_path, split):
     ims = []
     keys = []
     for path in path_list:
-        with open(path,'rb') as f:
+        with lzma.open(path,'rb') as f:
             item = pickle.load(f)
         ims.append(transform(item[0]))
-        keys.append(item[1])
+        keys.append(np.array(item[1]))
     
-    xt, xT, yt, yT = train_test_split(ims, keys, train_size=split, random_state=123)
+
+
+    xt, xT, yt, yT = train_test_split(np.array(ims), np.array(keys), train_size=split, random_state=123)
 
     return np.array_split(np.array(xt),num_batches), np.array(xT), np.array_split(np.array(yt),num_batches), np.array(yT)
 
 
-num_classes = 10
+num_classes = 13
 num_epochs = 20
-batch_size = 32
-num_batches = 5
+batch_size = 16
+num_batches = 2
 learning_rate = 0.01
 
 
@@ -52,7 +54,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 layers = [3, 4, 6, 3]
 model = ResNet(ResidualBlock, layers).to(device)
 
-x_train_batches, x_test, y_train_batches, y_test = data_loader(5,batch_size,'Training_images', 0.33)
+x_train_batches, x_test, y_train_batches, y_test = data_loader(num_batches,batch_size,r'MultiMode Analysis\Training_images', 0.33)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.001, momentum = 0.9)  
@@ -60,8 +62,8 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay =
 
 for epoch in range(num_epochs):
     for i, (images, keys) in enumerate(zip(x_train_batches, y_train_batches)):
-        images = images.to(device)
-        keys = keys.to(device)
+        images = torch.from_numpy(images).to(device)
+        keys = torch.from_numpy(keys).to(device)
 
         outputs = model(images)
         loss = criterion(outputs, keys)
