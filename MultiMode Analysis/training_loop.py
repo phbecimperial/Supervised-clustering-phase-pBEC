@@ -8,26 +8,29 @@ from tqdm import tqdm as tqdm
 from sklearn.metrics import classification_report
 import time
 import numpy as np
+import argparse
 
-#Testing with MNIST first!
+# Testing with MNIST first!
 
-epochs=5
-classes=10 #10 numbers
-batch_size=64
-learning_rate=0.001
+epochs = 5
+classes = 10  # 10 numbers
+batch_size = 64
+learning_rate = 0.001
 train_split = 0.75
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load MNIST dataset
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]) #Transforms it to a tensor, and rescales pixel values [0, 1]
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
+    0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
 train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 
-numTrainSamp = int(len(train_dataset))*train_split
-numValSamp = int(len(train_dataset))*(1-train_split)
+numTrainSamp = int(len(train_dataset)) * train_split
+numValSamp = int(len(train_dataset)) * (1 - train_split)
 
-(train_dataset, validate_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp)], generator=None)
+(train_dataset, validate_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp)],
+                                                                  generator=None)
 
 # Create data loaders
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
@@ -46,13 +49,12 @@ history = {
     "val_acc": []
 }
 
-trainSteps = len(train_loader.dataset)//batch_size
-valSteps = len(val_loader.dataset)//batch_size
-
+trainSteps = len(train_loader.dataset) // batch_size
+valSteps = len(val_loader.dataset) // batch_size
 
 start = time.time()
 
-#3 sets of data: training, validation, testing
+# 3 sets of data: training, validation, testing
 
 
 # Training loop
@@ -60,10 +62,10 @@ epochs = 5
 for epoch in tqdm(range(epochs)):
     model.train()
 
-    totalTrainLoss=0
-    totalValLoss=0
-    trainCorrect=0
-    valCorrect=0
+    totalTrainLoss = 0
+    totalValLoss = 0
+    trainCorrect = 0
+    valCorrect = 0
 
     for inputs, labels in train_loader:
         inputs, labels = inputs.to(device), labels.to(device)
@@ -74,9 +76,9 @@ for epoch in tqdm(range(epochs)):
         loss.backward()
         optimizer.step()
 
-        #Update losses
-        totalTrainLoss+=loss
-        trainCorrect+=(outputs.argmax(1) == labels).type(torch.float).sum().item()
+        # Update losses
+        totalTrainLoss += loss
+        trainCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
 
     # Print training loss for each epoch
     print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
@@ -94,30 +96,27 @@ with torch.no_grad():
         correct += (predicted == labels).sum().item()
         loss = criterion(outputs, labels)
 
+        totalValLoss += loss
+        valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
 
-        totalValLoss+=loss
-        valCorrect+=(outputs.argmax(1)==labels).type(torch.float).sum().item()
+        trainCorrect = trainCorrect / len(train_loader.dataset)
+        valCorrect = valCorrect / len(val_loader.dataset)
+
+        avgTrainLoss = totalTrainLoss / trainSteps
+        avgValLoss = totalValLoss / valSteps
+
+        history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
+        history["train_acc"].append(trainCorrect)
+        history["val_loss"].append(avgValLoss.cpu().detach().numpy())
+        history["val_acc"].append(valCorrect)
 
 accuracy = correct / total
 print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-trainCorrect = trainCorrect/len(train_loader.dataset)
-valCorrect = valCorrect/len(val_loader.dataset)
-
-avgTrainLoss = totalTrainLoss/trainSteps
-avgValLoss = totalValLoss/valSteps
-
-history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
-history["train_acc"].append(trainCorrect)
-history["val_loss"].append(avgValLoss.cpu().detach().numpy())
-history["val_acc"].append(valCorrect)
-
-print(classification_report(test_dataset))
-
 end = time.time()
 print("Time taken to train", np.round(end - start))
 
-#Now, use test dataset:
+# Now, use test dataset:
 
 with torch.no_grad():
     model.eval()
@@ -127,12 +126,10 @@ with torch.no_grad():
     for inputs, labels in test_loader:
         inputs = inputs.to(device)
 
-        outputs=model(inputs)
+        outputs = model(inputs)
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
 
-
-print(classification_report(test_dataset.targets.cpu().numpy(), np.array(preds, target_names=test_dataset.classes)))
-
+print(classification_report(test_dataset.targets.cpu().numpy(), np.array(preds), target_names=test_dataset.classes))
 
 import matplotlib.pyplot as plt
 
@@ -145,6 +142,6 @@ plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch")
 plt.ylabel("Loss and Accuracy")
 plt.legend()
+plt.show()
 
-
-torch.save(model, args["model"])
+torch.save(model, "cnn.pt")
