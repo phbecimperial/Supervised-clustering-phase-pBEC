@@ -11,7 +11,7 @@ import pickle as pkl
 from scipy.ndimage import rotate, gaussian_filter, zoom
 from scipy.fft import fft2, fftshift
 import cv2 as cv
-from modes import modelist, laser_func
+from modes import mode_func, modelist
 from LightPipes import * 
 from tqdm import tqdm
 
@@ -38,8 +38,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        key, comb = random.choice(list(modes.items()))
-        index = list(modelist).index(key)
+        comb, outputs = mode_func()
         #comb = modes[np.random.randint(0, len(modes)-1)]
 
         amps = 0.1 + np.random.random(len(comb))*0.9
@@ -100,10 +99,10 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         if save:
             # Using mgzip to compress pickles
             with lzma.open(r'MultiMode Analysis\Training_images\training_image' + str(i) + '.pkl.xz', 'wb') as f:
-                pkl.dump((im, index), f)
+                pkl.dump((im, outputs), f)
             f.close()
         else:    
-            images.append((im,key))
+            images.append((im,outputs))
     return images
 
 
