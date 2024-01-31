@@ -44,7 +44,7 @@ class ResidualBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes = 13):
+    def __init__(self, block, layers, num_classes = 14):
         super(ResNet, self).__init__()
         self.inplanes = 64
         self.conv1 = nn.Sequential(
@@ -56,7 +56,7 @@ class ResNet(nn.Module):
         self.layer1 = self._make_layer(block, 128, layers[1], stride = 2)
         self.layer2 = self._make_layer(block, 256, layers[2], stride = 2)
         self.layer3 = self._make_layer(block, 512, layers[3], stride = 2)
-        self.avgpool = nn.AvgPool2d(7, stride=1)
+        self.avgpool = nn.AvgPool2d(1, stride=1)
         self.fc = nn.Linear(512, num_classes)
         
     def _make_layer(self, block, planes, blocks, stride=1):

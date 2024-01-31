@@ -6,10 +6,10 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from fcmeans import FCM
 
-# batch_size = 64
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("cnn.pt")
+model = torch.load("cnn.pt", map_location=torch.device('cpu'))
 newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
@@ -44,9 +44,9 @@ fcm.fit(all_features)
 labels = fcm.predict(all_features)
 # Figure out which pieces of data are at what point, labelled by the indices.
 groups = {}
-for i in range(0, len(kmeans.labels_)):
-    cluster = kmeans.labels_[i]
-    if kmeans.labels_[i] not in groups.keys():
+for i in range(0, len(labels)):
+    cluster = labels[i]
+    if labels[i] not in groups.keys():
         groups[cluster] = []
         groups[cluster].append(i)
     else:
@@ -73,11 +73,11 @@ view_cluster(2)
 plt.show()
 
 # Getting unique labels
-u_labels = np.unique(kmeans.labels_)
+u_labels = np.unique(labels)
 
 # plotting the results:
 
 for i in u_labels:
-    plt.scatter(all_features[kmeans.labels_ == i, 0], all_features[kmeans.labels_ == i, 1], label=i)
+    plt.scatter(all_features[labels == i, 0], all_features[labels == i, 1], label=i)
 plt.legend()
 plt.show()

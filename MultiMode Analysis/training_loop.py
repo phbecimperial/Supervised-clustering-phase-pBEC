@@ -3,17 +3,20 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-import neural_net as net
+from neural_net import CNN
 from tqdm import tqdm as tqdm
 from sklearn.metrics import classification_report
 import time
 import numpy as np
+from custom_dataset import CustomDataset
+from mode_classifier import ResNet, ResidualBlock
+from modes import names
 import argparse
 
 # Testing with MNIST first!
 
 epochs = 5
-classes = 10  # 10 numbers
+classes = 14  # Key parameter
 batch_size = 64
 learning_rate = 0.001
 train_split = 0.75
@@ -21,10 +24,14 @@ train_split = 0.75
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load MNIST dataset
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
-    0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
-train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# Transforms it to a tensor, and rescales pixel values [0, 1]
+
+#transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+#train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+# test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+train_dataset = CustomDataset(root_dir='Training_images', new_size=(28, 28))
+test_dataset = CustomDataset(root_dir='Training_images', new_size=(28, 28))
 
 numTrainSamp = int(len(train_dataset)) * train_split
 numValSamp = int(len(train_dataset)) * (1 - train_split)
@@ -38,7 +45,8 @@ val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize model, loss, and optimizer
-model = net.CNN(classes).to(device)
+# model = CNN(classes)
+model = ResNet(ResidualBlock, layers=[2, 2, 2, 2]).to(device)  # ResNet 18
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -129,7 +137,7 @@ with torch.no_grad():
         outputs = model(inputs)
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
 
-print(classification_report(test_dataset.targets.cpu().numpy(), np.array(preds), target_names=test_dataset.classes))
+print(classification_report(np.array(test_dataset.targets), np.array(preds), target_names=names))
 
 import matplotlib.pyplot as plt
 
@@ -144,4 +152,4 @@ plt.ylabel("Loss and Accuracy")
 plt.legend()
 plt.show()
 
-torch.save(model, "cnn.pt")
+torch.save(model, 'Saved_models/Model_1_CNN')

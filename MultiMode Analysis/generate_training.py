@@ -99,11 +99,11 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with lzma.open(r'MultiMode Analysis\Training_images\training_image' + str(i) + '.pkl.xz', 'wb') as f:
+            with lzma.open(r'Training_images\training_image' + str(i) + '@' + str(index) + '@' + '.pkl.xz', 'wb') as f:
                 pkl.dump((im, index), f)
             f.close()
         else:    
-            images.append((im,key))
+            images.append((im,index))
     return images
 
 
