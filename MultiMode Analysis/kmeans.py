@@ -4,16 +4,26 @@ import numpy as np
 from sklearn.cluster import KMeans
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
+from custom_dataset import CustomDataset
+
 
 # batch_size = 64
+new_size = (224, 224)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("cnn.pt", map_location=torch.device('cpu'))
-newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
-    0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+model = torch.load("Saved_models/Model_2_ResNet", map_location=torch.device('cpu'))
+#model = torch.load("CNN.pt", map_location=torch.device('cpu'))
+
+newmodel = torch.nn.Sequential(*(list(model.children())[:-1])) #-1 for ResNet, -2 for CNN
+
+# transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
+#     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
+# test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+
+
+test_dataset = CustomDataset(root_dir='Training_images', new_size=new_size)
+test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False) #Get images one at a time
 
 with torch.no_grad():
     model.eval()
@@ -37,7 +47,7 @@ from sklearn.decomposition import PCA
 # all_features = PCA(2).fit_transform(all_features)
 
 target_names = test_dataset.classes
-kmeans = KMeans(n_clusters=len(target_names))
+kmeans = KMeans(n_clusters=len(target_names), verbose=1)
 kmeans.fit(all_features)
 
 # Figure out which pieces of data are at what point, labelled by the indices.
@@ -51,7 +61,6 @@ for i in range(0, len(kmeans.labels_)):
         groups[cluster].append(i)
 
 
-# %%
 # View clusters
 def view_cluster(cluster):
     indices = groups[cluster]
@@ -67,7 +76,7 @@ def view_cluster(cluster):
         plt.imshow(img)
 
 
-view_cluster(2)
+view_cluster(3)
 plt.show()
 
 # Getting unique labels
@@ -75,13 +84,13 @@ u_labels = np.unique(kmeans.labels_)
 
 # plotting the results:
 
-for i in u_labels:
-    plt.scatter(all_features[kmeans.labels_ == i, 0], all_features[kmeans.labels_ == i, 1], label=i)
-plt.legend()
-plt.show()
+# for i in u_labels:
+#     plt.scatter(all_features[kmeans.labels_ == i, 0], all_features[kmeans.labels_ == i, 1], label=i)
+# plt.legend()
+# plt.show()
 
 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
 # Assuming you have true labels for the MNIST dataset
 true_labels = test_dataset.targets.numpy()
@@ -99,3 +108,5 @@ predicted_labels = np.array([cluster_to_class[cluster] for cluster in kmeans.lab
 # Calculate accuracy
 accuracy = accuracy_score(true_labels, predicted_labels)
 print("Accuracy:", accuracy)
+
+print(classification_report(true_labels, predicted_labels, target_names=test_dataset.classes))

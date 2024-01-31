@@ -10,16 +10,36 @@ import time
 import numpy as np
 from custom_dataset import CustomDataset
 from resnet import ResNet, ResidualBlock
-from modes import names
+
 import argparse
 
 # Testing with MNIST first!
 
-epochs = 50
-classes = 14  # Key parameter
+epochs = 2
+classes = 10  # Key parameter
 batch_size = 64
 learning_rate = 0.001
-train_split = 0.75
+val_split = 0.15
+test_split = 0.15
+
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+early_stopper = EarlyStopper(patience=3, min_delta=1) #Need to find best min_delta
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,26 +49,27 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 # train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 # test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-new_size = (150, 150)
+new_size = (224, 224)
 train_dataset = CustomDataset(root_dir='Training_images',
                               new_size=new_size)  # Increase size/decrease stride + kernel inside resnet to increase acc
-test_dataset = CustomDataset(root_dir='Training_images', new_size=new_size)
 
-numTrainSamp = int(len(train_dataset)) * train_split
-numValSamp = int(len(train_dataset)) * (1 - train_split)
+numTrainSamp = int(len(train_dataset)) * (1-val_split-test_split)
+numValSamp = int(len(train_dataset)) * val_split
+numTrainSamp = int(len(train_dataset))*test_split
 
-(train_dataset, validate_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp)],
+# 3 sets of data: training, validation, testing, split
+(train_dataset, validate_dataset, test_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp), int(numTrainSamp)],
                                                                   generator=None)
 
 # Create data loaders
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle=False)
+val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize model, loss, and optimizer
-# model = CNN(classes)
-model = ResNet(ResidualBlock, layers=[2, 2, 2, 2], kernel_size=1, strides=2).to(
-    device)  # ResNet 18, kernel_size=1 as images are too small already.
+#model = CNN(classes)
+model = ResNet(ResidualBlock, layers=[2, 2, 2, 2], kernel_size=7, strides=2).to(
+    device)  # ResNet 18,
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -64,7 +85,6 @@ valSteps = len(val_loader.dataset) // batch_size
 
 start = time.time()
 
-# 3 sets of data: training, validation, testing
 
 
 # Training loop
@@ -93,38 +113,42 @@ for epoch in tqdm(range(epochs)):
     # Print training loss for each epoch
     print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
 
-# Evaluate the model on the test set
-model.eval()
-correct = 0
-total = 0
-with torch.no_grad():
-    for inputs, labels in val_loader:
-        inputs, labels = inputs.to(device), labels.to(device)
-        outputs = model(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-        loss = criterion(outputs, labels)
+    # Evaluate the model on the test set
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            loss = criterion(outputs, labels)
 
-        totalValLoss += loss
-        valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
+            totalValLoss += loss
+            valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
 
-        trainCorrect = trainCorrect / len(train_loader.dataset)
-        valCorrect = valCorrect / len(val_loader.dataset)
+    if early_stopper.early_stop(totalValLoss):
+        break
 
-        avgTrainLoss = totalTrainLoss / trainSteps
-        avgValLoss = totalValLoss / valSteps
 
-        history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
-        history["train_acc"].append(trainCorrect)
-        history["val_loss"].append(avgValLoss.cpu().detach().numpy())
-        history["val_acc"].append(valCorrect)
+    trainCorrect = trainCorrect / len(train_loader.dataset)
+    valCorrect = valCorrect / len(val_loader.dataset)
 
-accuracy = correct / total
-print(f"Test Accuracy: {accuracy * 100:.2f}%")
+    avgTrainLoss = totalTrainLoss / trainSteps
+    avgValLoss = totalValLoss / valSteps
 
-end = time.time()
-print("Time taken to train", np.round(end - start))
+    history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
+    history["train_acc"].append(trainCorrect)
+    history["val_loss"].append(avgValLoss.cpu().detach().numpy())
+    history["val_acc"].append(valCorrect)
+
+    accuracy = correct / total
+    print(f"Test Accuracy Epoch {epoch+1}/{epochs}: {accuracy * 100:.2f}%")
+
+    end = time.time()
+    print("Time taken to train", np.round(end - start))
 
 # Now, use test dataset:
 
@@ -139,7 +163,7 @@ with torch.no_grad():
         outputs = model(inputs)
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
 
-print(classification_report(np.array(test_dataset.targets), np.array(preds), target_names=names))
+print(classification_report(np.array(test_dataset.targets), np.array(preds), target_names=test_dataset.classes))
 
 import matplotlib.pyplot as plt
 
@@ -154,4 +178,5 @@ plt.ylabel("Loss and Accuracy")
 plt.legend()
 plt.show()
 
-torch.save(model, 'Saved_models/Model_1_ResNet')
+torch.save(model, 'Saved_models/Model_3_ResNet')
+print('Saved_models/Model_3_ResNet')

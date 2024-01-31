@@ -4,6 +4,8 @@ import os
 import pickle
 import lzma
 import torch
+from modes import names
+import numpy as np
 
 
 class CustomDataset(Dataset):
@@ -24,6 +26,11 @@ class CustomDataset(Dataset):
         for f in self.file_list:
             parts = f.split('@')
             self.targets.append(int(parts[1]))
+        self.targets = np.array(self.target)
+        self.targets = torch.tensor(self.targets)
+
+        self.classes = names
+
 
     def __len__(self):
         return len(self.file_list)
