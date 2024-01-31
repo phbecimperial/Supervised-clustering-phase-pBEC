@@ -52,15 +52,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 # test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 new_size = (224, 224)
-train_dataset = CustomDataset(root_dir='Training_images',
+train_datasetini = CustomDataset(root_dir='Training_images',
                               new_size=new_size)  # Increase size/decrease stride + kernel inside resnet to increase acc
 
-numTrainSamp = int(len(train_dataset)) * (1 - val_split - test_split)
-numValSamp = int(len(train_dataset)) * val_split
-numTestSamp = int(len(train_dataset)) * test_split
+numTrainSamp = int(len(train_datasetini)) * (1 - val_split - test_split)
+numValSamp = int(len(train_datasetini)) * val_split
+numTestSamp = int(len(train_datasetini)) * test_split
 
 # 3 sets of data: training, validation, testing, split
-(train_dataset, validate_dataset, test_dataset) = torch.utils.data.random_split(train_dataset,
+(train_dataset, validate_dataset, test_dataset) = torch.utils.data.random_split(train_datasetini,
                                                                                 [int(numTrainSamp), int(numValSamp),
                                                                                  int(numTestSamp)],
                                                                                 generator=None)
@@ -72,7 +72,7 @@ test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=Fa
 
 # Initialize model, loss, and optimizer
 # model = CNN(classes)
-model = ResNet(ResidualBlock, layers=[2, 2, 2, 2], kernel_size=7, strides=2).to(
+model = ResNet(ResidualBlock, layers=[3, 3, 3, 3], kernel_size=4, strides=2).to(
     device)  # ResNet 18,
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -131,8 +131,8 @@ for epoch in tqdm(range(epochs)):
             totalValLoss += loss
             valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
 
-    if early_stopper.early_stop(totalValLoss):
-        break
+    #if early_stopper.early_stop(totalValLoss):
+    #    break
 
     trainCorrect = trainCorrect / len(train_loader.dataset)
     valCorrect = valCorrect / len(val_loader.dataset)
@@ -157,14 +157,16 @@ with torch.no_grad():
     model.eval()
 
     preds = []
+    actual = []
 
     for inputs, labels in test_loader:
         inputs = inputs.to(device)
 
         outputs = model(inputs)
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
+        actual.append(labels)
 
-print(classification_report(np.array(test_dataset.targets), np.array(preds), target_names=test_dataset.classes))
+print(classification_report(np.array(actual), np.array(preds), target_names=train_datasetini.classes))
 
 import matplotlib.pyplot as plt
 
