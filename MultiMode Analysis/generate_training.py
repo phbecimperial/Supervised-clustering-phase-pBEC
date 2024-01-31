@@ -32,13 +32,13 @@ def noise_shift(im, scale):
 
 
 def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5], 
-                  wavelen=950*nm, spec_num = [0, 20], spec_rad = [1*um, 7*um], 
+                  wavelen=950*nm, spec_num = [0, 20], mult_las_split = 0.5, spec_rad = [1*um, 7*um], 
                   save = True, LG = True):
     images = []
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        comb, outputs = mode_func()
+        comb, outputs = mode_func(mult_las_split)
         #comb = modes[np.random.randint(0, len(modes)-1)]
 
         amps = 0.1 + np.random.random(len(comb))*0.9

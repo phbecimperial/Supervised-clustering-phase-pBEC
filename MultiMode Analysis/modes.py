@@ -1,5 +1,5 @@
 from _collections_abc import dict_items
-from numpy.random import randint
+from numpy.random import randint, random
 import math
 class CallableDict(dict):
     def __getitem__(self, __key: None) -> None:
@@ -39,17 +39,22 @@ def mode_nums():
 
     return [nm1, nm2]
 
-def mode_func():
+def mode_func(multi_split = 0.5):
     n = randint(1,5)
     ms = []
     for i in range(n):
-        newmode = mode_nums()
-
-        while any(ms) == newmode:
+        if multi_split > random() and i == 1:
+            newmode = [0,0]
+        else:
+            newmode = mode_nums()
+        
+        while newmode in ms:
             newmode = mode_nums()
         ms.append(newmode)
     
-    outputs = [m == any(ms) for i,m in modelist]
+    outputs = []
+    for i in modelist:
+        outputs.append(i in ms)
     print(ms)
     return ms, outputs
 
