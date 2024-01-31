@@ -9,13 +9,13 @@ from sklearn.metrics import classification_report
 import time
 import numpy as np
 from custom_dataset import CustomDataset
-from mode_classifier import ResNet, ResidualBlock
+from resnet import ResNet, ResidualBlock
 from modes import names
 import argparse
 
 # Testing with MNIST first!
 
-epochs = 5
+epochs = 50
 classes = 14  # Key parameter
 batch_size = 64
 learning_rate = 0.001
@@ -26,12 +26,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Load MNIST dataset
 # Transforms it to a tensor, and rescales pixel values [0, 1]
 
-#transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-#train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+# transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+# train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 # test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-
-train_dataset = CustomDataset(root_dir='Training_images', new_size=(28, 28))
-test_dataset = CustomDataset(root_dir='Training_images', new_size=(28, 28))
+new_size = (150, 150)
+train_dataset = CustomDataset(root_dir='Training_images',
+                              new_size=new_size)  # Increase size/decrease stride + kernel inside resnet to increase acc
+test_dataset = CustomDataset(root_dir='Training_images', new_size=new_size)
 
 numTrainSamp = int(len(train_dataset)) * train_split
 numValSamp = int(len(train_dataset)) * (1 - train_split)
@@ -46,7 +47,8 @@ test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=Fa
 
 # Initialize model, loss, and optimizer
 # model = CNN(classes)
-model = ResNet(ResidualBlock, layers=[2, 2, 2, 2]).to(device)  # ResNet 18
+model = ResNet(ResidualBlock, layers=[2, 2, 2, 2], kernel_size=1, strides=2).to(
+    device)  # ResNet 18, kernel_size=1 as images are too small already.
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -66,7 +68,7 @@ start = time.time()
 
 
 # Training loop
-epochs = 5
+
 for epoch in tqdm(range(epochs)):
     model.train()
 
@@ -152,4 +154,4 @@ plt.ylabel("Loss and Accuracy")
 plt.legend()
 plt.show()
 
-torch.save(model, 'Saved_models/Model_1_CNN')
+torch.save(model, 'Saved_models/Model_1_ResNet')

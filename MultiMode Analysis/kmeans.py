@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 # batch_size = 64
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("cnn.pt")
+model = torch.load("cnn.pt", map_location=torch.device('cpu'))
 newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
@@ -79,3 +79,23 @@ for i in u_labels:
     plt.scatter(all_features[kmeans.labels_ == i, 0], all_features[kmeans.labels_ == i, 1], label=i)
 plt.legend()
 plt.show()
+
+
+from sklearn.metrics import accuracy_score
+
+# Assuming you have true labels for the MNIST dataset
+true_labels = test_dataset.targets.numpy()
+
+# Map cluster labels to the most frequent true class in each cluster
+cluster_to_class = {}
+for cluster in np.unique(kmeans.labels_):
+    mask = (kmeans.labels_ == cluster)
+    most_frequent_class = np.argmax(np.bincount(true_labels[mask]))
+    cluster_to_class[cluster] = most_frequent_class
+
+# Map cluster labels to predicted labels
+predicted_labels = np.array([cluster_to_class[cluster] for cluster in kmeans.labels_])
+
+# Calculate accuracy
+accuracy = accuracy_score(true_labels, predicted_labels)
+print("Accuracy:", accuracy)
