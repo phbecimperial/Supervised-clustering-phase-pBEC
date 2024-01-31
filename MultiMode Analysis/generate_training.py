@@ -41,7 +41,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         comb, outputs = mode_func(mult_las_split)
         #comb = modes[np.random.randint(0, len(modes)-1)]
 
-        amps = 0.1 + np.random.random(len(comb))*0.9
+        amps = 0.05 + np.random.random(len(comb))*0.95
         amps = amps/max(amps)
         for j, (mode, amp) in enumerate(zip(comb, amps)):
 
@@ -98,7 +98,8 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with lzma.open(r'MultiMode Analysis\Training_images\training_image' + str(i) + '.pkl.xz', 'wb') as f:
+            with lzma.open(r'MultiMode Analysis\Training_images\training_image' + '@' +
+                           str(i) + '@' + ''.join(['1' if i else '0' for i in outputs]) + '.pkl.xz', 'wb') as f:
                 pkl.dump((im, outputs), f)
             f.close()
         else:    
@@ -106,7 +107,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     return images
 
 
-ims = gererate_data(10, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = False, LG = False)
+ims = gererate_data(5000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = False, LG = False)
 
 
 for i, (img, k) in enumerate(ims):
