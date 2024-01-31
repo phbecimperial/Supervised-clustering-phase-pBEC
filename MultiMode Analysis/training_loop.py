@@ -15,12 +15,13 @@ import argparse
 
 # Testing with MNIST first!
 
-epochs = 2
-classes = 10  # Key parameter
+epochs = 200
+classes = 14  # Key parameter
 batch_size = 64
 learning_rate = 0.001
 val_split = 0.15
 test_split = 0.15
+
 
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):
@@ -39,7 +40,8 @@ class EarlyStopper:
                 return True
         return False
 
-early_stopper = EarlyStopper(patience=3, min_delta=1) #Need to find best min_delta
+
+early_stopper = EarlyStopper(patience=3, min_delta=1)  # Need to find best min_delta
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -53,13 +55,15 @@ new_size = (224, 224)
 train_dataset = CustomDataset(root_dir='Training_images',
                               new_size=new_size)  # Increase size/decrease stride + kernel inside resnet to increase acc
 
-numTrainSamp = int(len(train_dataset)) * (1-val_split-test_split)
+numTrainSamp = int(len(train_dataset)) * (1 - val_split - test_split)
 numValSamp = int(len(train_dataset)) * val_split
-numTrainSamp = int(len(train_dataset))*test_split
+numTestSamp = int(len(train_dataset)) * test_split
 
 # 3 sets of data: training, validation, testing, split
-(train_dataset, validate_dataset, test_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp), int(numTrainSamp)],
-                                                                  generator=None)
+(train_dataset, validate_dataset, test_dataset) = torch.utils.data.random_split(train_dataset,
+                                                                                [int(numTrainSamp), int(numValSamp),
+                                                                                 int(numTestSamp)],
+                                                                                generator=None)
 
 # Create data loaders
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
@@ -67,7 +71,7 @@ val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize model, loss, and optimizer
-#model = CNN(classes)
+# model = CNN(classes)
 model = ResNet(ResidualBlock, layers=[2, 2, 2, 2], kernel_size=7, strides=2).to(
     device)  # ResNet 18,
 criterion = nn.CrossEntropyLoss()
@@ -84,8 +88,6 @@ trainSteps = len(train_loader.dataset) // batch_size
 valSteps = len(val_loader.dataset) // batch_size
 
 start = time.time()
-
-
 
 # Training loop
 
@@ -132,7 +134,6 @@ for epoch in tqdm(range(epochs)):
     if early_stopper.early_stop(totalValLoss):
         break
 
-
     trainCorrect = trainCorrect / len(train_loader.dataset)
     valCorrect = valCorrect / len(val_loader.dataset)
 
@@ -145,7 +146,7 @@ for epoch in tqdm(range(epochs)):
     history["val_acc"].append(valCorrect)
 
     accuracy = correct / total
-    print(f"Test Accuracy Epoch {epoch+1}/{epochs}: {accuracy * 100:.2f}%")
+    print(f"Test Accuracy Epoch {epoch + 1}/{epochs}: {accuracy * 100:.2f}%")
 
     end = time.time()
     print("Time taken to train", np.round(end - start))
@@ -179,4 +180,4 @@ plt.legend()
 plt.show()
 
 torch.save(model, 'Saved_models/Model_3_ResNet')
-print('Saved_models/Model_3_ResNet')
+print('Saved_models/Model_4_ResNet')

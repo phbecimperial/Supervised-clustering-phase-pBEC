@@ -26,7 +26,7 @@ class CustomDataset(Dataset):
         for f in self.file_list:
             parts = f.split('@')
             self.targets.append(int(parts[1]))
-        self.targets = np.array(self.target)
+        self.targets = np.array(self.targets)
         self.targets = torch.tensor(self.targets)
 
         self.classes = names
