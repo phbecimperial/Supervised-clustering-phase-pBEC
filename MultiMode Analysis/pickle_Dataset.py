@@ -5,10 +5,11 @@ import numpy as np
 from glob import glob
 import torch
 from torch.utils import data
+from torchvision.transforms import v2
 
 
 class pickle_Dataset(data.Dataset):
-    def __init__(self,  root = '.', iext = '.pt', transforms=None, train = False):
+    def __init__(self,  root = '.', transforms=None):
         self.transforms = transforms
 
         self.dir_list = np.array(glob(root + r'\*'))
@@ -20,9 +21,10 @@ class pickle_Dataset(data.Dataset):
 
         with lzma.open(path, 'rb') as f:
             im, key = pickle.load(f)
+            im = np.asarray(im, np.float32)
             im = self.transforms(im)
 
-        return (im, key)
+        return (im, torch.from_numpy(np.array(key, np.float32)))
 
     def __len__(self):
         return self.size 

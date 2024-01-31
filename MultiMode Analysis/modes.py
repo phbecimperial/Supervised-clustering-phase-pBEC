@@ -54,8 +54,7 @@ def mode_func(multi_split = 0.5):
     
     outputs = [] 
     for i in modelist:
-        outputs.append(i in ms)
-    print(ms)
+        outputs.append(i in ms) n
     return ms, outputs
 
 modelist = [

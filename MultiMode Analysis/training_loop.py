@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-import neural_net as net
+from mode_classifier import ResNet, ResidualBlock
 from tqdm import tqdm as tqdm
 from sklearn.metrics import classification_report
 import time
 import numpy as np
 import argparse
+from pickle_Dataset import pickle_Dataset
 
 # Testing with MNIST first!
 
@@ -20,11 +21,14 @@ train_split = 0.75
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load MNIST dataset
+# # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
-train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+# test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+train_dataset = pickle_Dataset(root = r'MultiMode Analysis/Training_Images', transforms = transform)
+test_dataset = pickle_Dataset(root = r'MultiMode Analysis/Training_Images', transforms = transform)
 
 numTrainSamp = int(len(train_dataset)) * train_split
 numValSamp = int(len(train_dataset)) * (1 - train_split)
@@ -38,7 +42,7 @@ val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize model, loss, and optimizer
-model = net.CNN(classes).to(device)
+model = ResNet(ResidualBlock,[3, 4, 6, 3],13).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -64,7 +68,7 @@ for epoch in tqdm(range(epochs)):
 
     totalTrainLoss = 0
     totalValLoss = 0
-    trainCorrect = 0
+    trainError = []
     valCorrect = 0
 
     for inputs, labels in train_loader:
@@ -73,75 +77,79 @@ for epoch in tqdm(range(epochs)):
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, labels)
+        print(outputs)
         loss.backward()
         optimizer.step()
 
         # Update losses
         totalTrainLoss += loss
-        trainCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
+        trainError.append(np.mean((outputs - labels)**2))
 
     # Print training loss for each epoch
     print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
 
 # Evaluate the model on the test set
-model.eval()
-correct = 0
-total = 0
-with torch.no_grad():
-    for inputs, labels in val_loader:
-        inputs, labels = inputs.to(device), labels.to(device)
-        outputs = model(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-        loss = criterion(outputs, labels)
 
-        totalValLoss += loss
-        valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
+#TODO model evaluation needs to be redone as is not multiclass classfier anymore    
 
-        trainCorrect = trainCorrect / len(train_loader.dataset)
-        valCorrect = valCorrect / len(val_loader.dataset)
+# model.eval()
+# correct = 0
+# total = 0
+# with torch.no_grad():
+#     for inputs, labels in val_loader:
+#         inputs, labels = inputs.to(device), labels.to(device)
+#         outputs = model(inputs)
+#         _, predicted = torch.max(outputs.data, 1)
+#         total += labels.size(0)
+#         correct += (predicted == labels).sum().item()
+#         loss = criterion(outputs, labels)
 
-        avgTrainLoss = totalTrainLoss / trainSteps
-        avgValLoss = totalValLoss / valSteps
+#         totalValLoss += loss
+#         valCorrect += (outputs.argmax(1) == labels).type(torch.float).sum().item()
 
-        history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
-        history["train_acc"].append(trainCorrect)
-        history["val_loss"].append(avgValLoss.cpu().detach().numpy())
-        history["val_acc"].append(valCorrect)
+#         trainCorrect = trainCorrect / len(train_loader.dataset)
+#         valCorrect = valCorrect / len(val_loader.dataset)
 
-accuracy = correct / total
-print(f"Test Accuracy: {accuracy * 100:.2f}%")
+#         avgTrainLoss = totalTrainLoss / trainSteps
+#         avgValLoss = totalValLoss / valSteps
 
-end = time.time()
-print("Time taken to train", np.round(end - start))
+#         history["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
+#         history["train_acc"].append(trainCorrect)
+#         history["val_loss"].append(avgValLoss.cpu().detach().numpy())
+#         history["val_acc"].append(valCorrect)
 
-# Now, use test dataset:
+# accuracy = correct / total
+# print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-with torch.no_grad():
-    model.eval()
+# end = time.time()
+# print("Time taken to train", np.round(end - start))
 
-    preds = []
+# # Now, use test dataset:
 
-    for inputs, labels in test_loader:
-        inputs = inputs.to(device)
+# with torch.no_grad():
+#     model.eval()
 
-        outputs = model(inputs)
-        preds.extend(outputs.argmax(axis=1).cpu().numpy())
+#     preds = []
 
-print(classification_report(test_dataset.targets.cpu().numpy(), np.array(preds), target_names=test_dataset.classes))
+#     for inputs, labels in test_loader:
+#         inputs = inputs.to(device)
 
-import matplotlib.pyplot as plt
+#         outputs = model(inputs)
+#         preds.extend(outputs.argmax(axis=1).cpu().numpy())
 
-plt.plot(history["train_loss"], label="trainloss")
-plt.plot(history["val_loss"], label="val_loss")
-plt.plot(history["train_acc"], label="train_acc")
-plt.plot(history["val_acc"], label="val_acc")
+# print(classification_report(test_dataset.targets.cpu().numpy(), np.array(preds), target_names=test_dataset.classes))
 
-plt.title("Training Loss and Accuracy")
-plt.xlabel("Epoch")
-plt.ylabel("Loss and Accuracy")
-plt.legend()
-plt.show()
+# import matplotlib.pyplot as plt
 
-torch.save(model, "cnn.pt")
+# plt.plot(history["train_loss"], label="trainloss")
+# plt.plot(history["val_loss"], label="val_loss")
+# plt.plot(history["train_acc"], label="train_acc")
+# plt.plot(history["val_acc"], label="val_acc")
+
+# plt.title("Training Loss and Accuracy")
+# plt.xlabel("Epoch")
+# plt.ylabel("Loss and Accuracy")
+# plt.legend()
+# plt.show()
+
+torch.save(model, r"MultMode Analysis\Models\test_res.pt")

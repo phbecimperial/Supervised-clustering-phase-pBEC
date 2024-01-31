@@ -14,7 +14,7 @@ transform = v2.Compose([
         normalize,
 ])
 
-dataset = pickle_Dataset(r'MultiMode Analysis/Training_Images', transforms=transform, train = True)
+dataset = pickle_Dataset(r'MultiMode Analysis/Training_Images', transforms=transform)
 train_loader = DataLoader(dataset, 3, shuffle=True)
 
 for images, key in train_loader:

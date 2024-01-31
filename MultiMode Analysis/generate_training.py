@@ -107,7 +107,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     return images
 
 
-ims = gererate_data(5000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = False, LG = False)
+ims = gererate_data(5000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
 
 
 for i, (img, k) in enumerate(ims):
