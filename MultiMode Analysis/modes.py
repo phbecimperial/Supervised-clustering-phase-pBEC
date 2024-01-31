@@ -19,6 +19,9 @@ class CallableDict(dict):
 
         return item_list
 
+    def classes(self):
+        return list(self.keys())
+
 
 def laser_func():
     n = randint(1,5)
@@ -56,7 +59,7 @@ modelist = CallableDict({
     'Laser': laser_func
 })
 
-
+names = list(modelist.keys())
 
 
 print(modelist.items())

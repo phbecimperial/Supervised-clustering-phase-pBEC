@@ -1,17 +1,19 @@
 """
 Generates Training data
 """
+
 import random
+import lzma
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle as pkl
 from scipy.ndimage import rotate, gaussian_filter, zoom
+from scipy.fft import fft2, fftshift
 import cv2 as cv
 from modes import modelist, laser_func
 from LightPipes import * 
 from tqdm import tqdm
-from scipy.fft import fft2, fftshift
-import mgzip
 
 def noise_shift(im, scale):
     sh = im.shape
@@ -37,6 +39,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
         key, comb = random.choice(list(modes.items()))
+        index = list(modelist).index(key)
         #comb = modes[np.random.randint(0, len(modes)-1)]
 
         amps = 0.1 + np.random.random(len(comb))*0.9
@@ -96,11 +99,11 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with open(r'Training_images\training_image' + str(i) + '.pkl.gz', 'wb') as f:
-                pkl.dump((im, key), f)
+            with lzma.open(r'Training_images\training_image' + str(i) + '@' + str(index) + '@' + '.pkl.xz', 'wb') as f:
+                pkl.dump((im, index), f)
             f.close()
         else:    
-            images.append((im,key))
+            images.append((im,index))
     return images
 
 
