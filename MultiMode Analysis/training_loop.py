@@ -15,7 +15,7 @@ import argparse
 
 # Testing with MNIST first!
 
-epochs = 200
+epochs = 2
 classes = 14  # Key parameter
 batch_size = 64
 learning_rate = 0.001
@@ -45,12 +45,14 @@ early_stopper = EarlyStopper(patience=3, min_delta=1)  # Need to find best min_d
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load MNIST dataset
+# Load MNIST dataset for MNIST tests
 # Transforms it to a tensor, and rescales pixel values [0, 1]
 
 # transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 # train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 # test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+#Load training data for training tests
 new_size = (224, 224)
 train_datasetini = CustomDataset(root_dir='Training_images',
                               new_size=new_size)  # Increase size/decrease stride + kernel inside resnet to increase acc
@@ -157,16 +159,16 @@ with torch.no_grad():
     model.eval()
 
     preds = []
-    actual = []
+    actual = np.array([])
 
     for inputs, labels in test_loader:
         inputs = inputs.to(device)
 
         outputs = model(inputs)
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
-        actual.append(labels)
+        actual = np.append(actual, labels.cpu().numpy())
 
-print(classification_report(np.array(actual), np.array(preds), target_names=train_datasetini.classes))
+print(classification_report(actual, np.array(preds), target_names=train_datasetini.classes))
 
 import matplotlib.pyplot as plt
 
