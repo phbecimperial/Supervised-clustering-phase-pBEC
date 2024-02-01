@@ -15,7 +15,7 @@ import argparse
 
 # Testing with MNIST first!
 
-epochs = 2
+epochs = 100
 classes = 14  # Key parameter
 batch_size = 64
 learning_rate = 0.001
@@ -74,7 +74,7 @@ test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=Fa
 
 # Initialize model, loss, and optimizer
 # model = CNN(classes)
-model = ResNet(ResidualBlock, layers=[3, 3, 3, 3], kernel_size=4, strides=2).to(
+model = ResNet(ResidualBlock, layers=[3, 4, 6, 3], kernel_size=7, strides=2).to(
     device)  # ResNet 18,
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -168,6 +168,7 @@ with torch.no_grad():
         preds.extend(outputs.argmax(axis=1).cpu().numpy())
         actual = np.append(actual, labels.cpu().numpy())
 
+
 print(classification_report(actual, np.array(preds), target_names=train_datasetini.classes))
 
 import matplotlib.pyplot as plt
@@ -183,5 +184,5 @@ plt.ylabel("Loss and Accuracy")
 plt.legend()
 plt.show()
 
-torch.save(model, 'Saved_models/Model_3_ResNet')
+torch.save(model, 'Saved_models/Model_4_ResNet')
 print('Saved_models/Model_4_ResNet')

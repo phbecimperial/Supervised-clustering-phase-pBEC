@@ -6,8 +6,23 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from fcmeans import FCM
 
+
+def view_cluster(cluster):
+    indices = groups[cluster]
+    if len(indices) > 30:
+        indices = indices[:29]
+
+    plt.figure(figsize=[25, 25])
+
+    for i in range(0, len(indices)):
+        plt.subplot(10, 10, i + 1)
+        img = test_dataset[indices[i]][0].cpu().numpy()
+        img = img[0]
+        plt.imshow(img)
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("cnn.pt", map_location=torch.device('cpu'))
+model = torch.load("cnn.pt")
 newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
@@ -50,26 +65,11 @@ for i in range(0, len(labels)):
     else:
         groups[cluster].append(i)
 
-#percentages = fcm.soft_predict(all_features)
-
+percentages = fcm.soft_predict(all_features)
+print(percentages)
 # %%
 # View clusters
-def view_cluster(cluster):
-    indices = groups[cluster]
-    if len(indices) > 30:
-        indices = indices[:29]
 
-    plt.figure(figsize=[25, 25])
-
-    for i in range(0, len(indices)):
-        plt.subplot(10, 10, i + 1)
-        img = test_dataset[indices[i]][0].cpu().numpy()
-        img = img[0]
-        plt.imshow(img)
-
-
-view_cluster(2)
-plt.show()
 
 # Getting unique labels
 u_labels = np.unique(labels)
@@ -101,3 +101,6 @@ accuracy = accuracy_score(true_labels, predicted_labels)
 print("Accuracy:", accuracy)
 
 print(classification_report(true_labels, predicted_labels, target_names=test_dataset.classes))
+
+view_cluster(8)
+plt.savefig('fig')
