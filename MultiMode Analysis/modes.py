@@ -1,6 +1,7 @@
 from _collections_abc import dict_items
 from numpy.random import randint, random
 import math
+from torch import Tensor, stack
 class CallableDict(dict):
     def __getitem__(self, __key: None) -> None:
         val = super().__getitem__(__key)
@@ -54,8 +55,11 @@ def mode_func(multi_split = 0.5):
     
     outputs = [] 
     for i in modelist:
-        outputs.append(i in ms) n
-    return ms, outputs
+        if i in ms:
+            outputs.append(Tensor([1,0]))
+        else:
+            outputs.append(Tensor([0,1]))
+    return ms, stack(outputs)
 
 modelist = [
     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,0], [1,1], [1,2], [1,3], [2,0], [2,1], [2,2]

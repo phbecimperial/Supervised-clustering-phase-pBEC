@@ -4,6 +4,7 @@ Generates Training data
 
 import random
 import lzma
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +15,8 @@ import cv2 as cv
 from modes import mode_func, modelist
 from LightPipes import * 
 from tqdm import tqdm
+import torch
+from glob import glob
 
 def noise_shift(im, scale):
     sh = im.shape
@@ -99,13 +102,17 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         if save:
             # Using mgzip to compress pickles
             with lzma.open(r'MultiMode Analysis\Training_images\training_image' + '@' +
-                           str(i) + '@' + ''.join(['1' if i else '0' for i in outputs]) + '.pkl.xz', 'wb') as f:
+                           str(i) + '@' + ''.join(
+                               ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
+                               ) + '.pkl.xz', 'wb') as f:
                 pkl.dump((im, outputs), f)
             f.close()
         else:    
             images.append((im,outputs))
     return images
 
+for f in glob(r'MultiMode Analysis\Training_images\*'):
+    os.remove(f)
 
 ims = gererate_data(5000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
 
