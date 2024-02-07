@@ -61,7 +61,14 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history)
             history['val_accuracy'].append(correct / total)
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
 
-    return model
+        # if i > 10:
+        #     train_avg = np.mean(np.gradient(np.array(history['train_accuracy'])[i-9:i]))
+        #     val_avg = np.mean(np.gradient(np.array(history['val_accuracy'])[i-9:i]))
+
+        #     if train_avg > 0 and val_avg < 0:
+        #         return model, history
+
+    return model, history
 
 
 
@@ -70,7 +77,7 @@ classes = 13
 epochs = 100
 criterion = torch.nn.CrossEntropyLoss()
 learning_rate = 0.01
-train_split = 0.75
+train_split = 0.5
 batch_size = 64
 
 transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224)), v2.Normalize((0.5,), (
@@ -90,7 +97,7 @@ val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle
 
 
 
-for i in tqdm(range(classes)):
+for i in tqdm(range(11, classes)):
     model = ResNet(ResidualBlock, [3, 4, 6, 3], 2)
     history = {
     "train_loss": [],
@@ -98,7 +105,7 @@ for i in tqdm(range(classes)):
     "val_accuracy": []
     }
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.001, momentum = 0.9)  
-    model = Training(model, epochs, i, optimizer, train_loader, val_loader, history)
+    model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history)
     torch.save(model, r'MultiMode Analysis\\Models\Res_Class_' + str(i), pkl)
     with open(r'MultiMode Analysis\\Models\Res_Class_' + str(i) + 'history', 'wb') as f:
         pkl.dump(history, f)
