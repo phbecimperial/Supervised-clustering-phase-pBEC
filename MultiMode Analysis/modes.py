@@ -32,11 +32,11 @@ def laser_func():
     return ms
 
 def mode_nums():
-    nm1 = randint(0,2)
+    nm1 = randint(0,3)
 
-    if nm1 == 0: nm2 = randint(0,5)
-    elif nm1 == 1: nm2 = randint(0,3)
-    else: nm2 = randint(0,2)
+    if nm1 == 0: nm2 = randint(0,6)
+    elif nm1 == 1: nm2 = randint(0,4)
+    else: nm2 = randint(0,3)
 
     return [nm1, nm2]
 

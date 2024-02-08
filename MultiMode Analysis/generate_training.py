@@ -91,14 +91,14 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         im_avg = np.mean(im)
         im += im * np.random.random(im.shape) + np.random.random()*np.random.normal(im_avg/2, np.std(im), im.shape)
 
-        im = (im + np.min(im)) / (np.max(im) + np.min(im))
+        im = 255 * (im + np.min(im)) / (np.max(im) + np.min(im))
 
         im_mid = int(im.shape[0]/2)
         im_crop = int(im.shape[0]/2.5)
         crop_im = im[im_mid - im_crop:im_mid + im_crop, im_mid - im_crop:im_mid + im_crop]
 
         im = zoom(crop_im, 224/im.shape[0])
-
+        im = np.round(im, decimals=1) / 255
         if save:
             # Using mgzip to compress pickles
             with lzma.open(r'MultiMode Analysis\Training_images\training_image' + '@' +
@@ -111,10 +111,13 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             images.append((im,outputs))
     return images
 
-for f in glob(r'MultiMode Analysis\Training_images\*'):
-    os.remove(f)
+save = True
 
-ims = gererate_data(5000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = True, LG = False)
+if save:
+    for f in glob(r'MultiMode Analysis\Training_images\*'):
+        os.remove(f)
+        
+ims = gererate_data(500, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
 
 
 for i, (img, k) in enumerate(ims):

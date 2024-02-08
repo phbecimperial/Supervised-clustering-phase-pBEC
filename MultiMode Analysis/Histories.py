@@ -17,14 +17,18 @@ for i in files:
             }
         
         for _, loss in enumerate(hist['train_loss']):
-            new_hist['train_loss'].append(loss.detach().cpu().numpy())
+            if type(loss) != np.float64:
+                new_hist['train_loss'].append(loss.detach().cpu().numpy())
+            else:
+                new_hist['train_loss'].append(loss)
 
         histories.append(new_hist)
 
 
 for i, hist in enumerate(histories):
-    plt.plot(hist['train_loss'], label = 'model' + str(i) + 'loss')
-#    plt.plot(hist['val_accuracy'], label = 'model' + str(i) + 'loss')
+    i = 11
+    plt.plot(histories[i]['train_accuracy'], label = 'model' + str(i) + 'loss')
+    plt.plot(histories[i]['val_accuracy'], label = 'model' + str(i) + 'loss')
     plt.show()
 
 
