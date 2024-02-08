@@ -2,3 +2,4 @@ Multimode Analysis/Training_images
 *.pkl.gz
 **/data
 **/__pycache__
+**/Models
