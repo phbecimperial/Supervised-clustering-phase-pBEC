@@ -3,3 +3,5 @@ Multimode Analysis/Training_images
 **/data
 **/__pycache__
 **/Models
+**.pyc
+
