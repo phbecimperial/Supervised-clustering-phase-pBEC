@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pickle as pkl
 
 
-files = glob(r'MultiMode Analysis\\Models\\*history*')
+files = glob(r'Models\\*history*')
 
 histories = []
 for i in files:
@@ -26,9 +26,13 @@ for i in files:
 
 
 for i, hist in enumerate(histories):
-    i = 11
-    plt.plot(histories[i]['train_accuracy'], label = 'model' + str(i) + 'loss')
-    plt.plot(histories[i]['val_accuracy'], label = 'model' + str(i) + 'loss')
+    #i = 11
+    plt.plot(histories[i]['train_accuracy'], label = 'Train Accuracy')
+    plt.plot(histories[i]['val_accuracy'], label = 'Val Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title(files[i])
+    plt.legend()
     plt.show()
 
 

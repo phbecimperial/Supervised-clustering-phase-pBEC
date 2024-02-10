@@ -9,10 +9,13 @@ from torchvision.transforms import v2
 
 
 class pickle_Dataset(data.Dataset):
-    def __init__(self,  root = '.', transforms=None):
+    def __init__(self,  root = '.', transforms=None, max = np.inf):
         self.transforms = transforms
 
         self.dir_list = np.array(glob(root + r'\*'))
+
+        if len(self.dir_list) > max:
+            self.dir_list = self.dir_list[:max]
         self.size = len(self.dir_list)
         
     def __getitem__(self, index):

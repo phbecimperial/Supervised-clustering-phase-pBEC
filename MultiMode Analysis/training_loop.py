@@ -29,8 +29,10 @@ transform = transforms.Compose([transforms.ToTensor(),transforms.Resize((224,224
 # train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 # test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 
-train_dataset = pickle_Dataset(root = r'MultiMode Analysis/Training_Images', transforms = transform)
-test_dataset = pickle_Dataset(root = r'MultiMode Analysis/Training_Images', transforms = transform)
+train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform, max = 2500)
+test_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform, max = 2500)
+
+print(len(train_dataset))
 
 numTrainSamp = int(len(train_dataset)) * train_split
 numValSamp = int(len(train_dataset)) * (1 - train_split)

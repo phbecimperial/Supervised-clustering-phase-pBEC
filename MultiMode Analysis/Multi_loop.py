@@ -15,7 +15,7 @@ import gc
 
 def Training(model, epochs, label, optimizer, train_loader, val_loader, history, stop_check = 15):  
     model.to(device)
-    iter = tqdm(range(epochs))
+    iter = tqdm(range(epochs), leave=True)
     strikes = 0
     for i in iter:
         model.train()
@@ -85,7 +85,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
 
             if train_fit[0] > 0 and val_fit[0] < 0:
-                stikes += 1
+                strikes += 1
             else:
                 strikes = 0
             if strikes > 3:
@@ -106,7 +106,7 @@ batch_size = 64
 transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224)), v2.Normalize((0.5,), (
     0.5,))])
 
-train_dataset = pickle_Dataset(root = r'MultiMode Analysis/Training_Images', transforms = transform)
+train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform)
 
 
 numTrainSamp = int(len(train_dataset)) * (1 - val_split)
@@ -122,8 +122,7 @@ val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle
 
 
 
-for i in tqdm(range(classes)):
-    i = 12
+for i in tqdm(range(classes), leave=True):
     model = ResNet(ResidualBlock, [2, 2, 2, 2], 2)
     history = {
     "train_loss": [],
@@ -133,8 +132,8 @@ for i in tqdm(range(classes)):
     }
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.001, momentum = 0.9)  
     model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, stop_check=25)
-    torch.save(model, r'MultiMode Analysis\\Models\Res_Class_' + str(i), pkl)
-    with open(r'MultiMode Analysis\\Models\Res_Class_' + str(i) + 'history', 'wb') as f:
+    torch.save(model, r'Models\Res_Class_' + str(i), pkl)
+    with open(r'Models\Res_Class_' + str(i) + 'history', 'wb') as f:
         pkl.dump(history, f)
     del model
 

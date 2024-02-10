@@ -101,7 +101,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         im = np.round(im, decimals=1) / 255
         if save:
             # Using mgzip to compress pickles
-            with lzma.open(r'MultiMode Analysis\Training_images\training_image' + '@' +
+            with lzma.open(r'Training_images\training_image' + '@' +
                            str(i) + '@' + ''.join(
                                ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
                                ) + '.pkl.xz', 'wb') as f:
@@ -117,7 +117,7 @@ if save:
     for f in glob(r'MultiMode Analysis\Training_images\*'):
         os.remove(f)
         
-ims = gererate_data(500, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
+ims = gererate_data(10000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
 
 
 for i, (img, k) in enumerate(ims):
