@@ -4,8 +4,9 @@ import numpy as np
 # from sklearn.cluster import KMeans
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from fcmeans import FCM
-
+#from fcmeans import FCM
+from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
+from tqdm import tqdm
 
 def view_cluster(cluster):
     indices = groups[cluster]
@@ -22,7 +23,7 @@ def view_cluster(cluster):
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("cnn.pt")
+model = torch.load("cnn.pt", map_location=torch.device('cpu'))
 newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
@@ -34,13 +35,13 @@ with torch.no_grad():
 
     all_features = []
 
-    for inputs, labels in test_loader:
+    for inputs, labels in tqdm(test_loader):
         inputs = inputs.to(device)
 
         outputs = newmodel(inputs)
         outputs = outputs.cpu().numpy()
         outputs = outputs[0].tolist()
-        all_features.append(outputs)
+        all_features.append(outputs) #Test
 
 all_features = np.array(all_features)
 
@@ -48,13 +49,21 @@ all_features = np.array(all_features)
 
 from sklearn.decomposition import PCA
 
-# all_features = PCA(2).fit_transform(all_features)
+#all_features = PCA(512).fit_transform(all_features)
 
 target_names = test_dataset.classes
-fcm = FCM(n_clusters=len(target_names), m=2)
+#fcm = FCM(n_clusters=len(target_names), m=2)
+
+print("INFO: Starting clustering")
+fcm = FuzzyKMeans(k=len(target_names), m=1.5)
 fcm.fit(all_features)
 
-labels = fcm.predict(all_features)
+#labels = fcm.predict(all_features)
+
+fuzzy_membership_matrix = fcm.fuzzy_labels_
+labels = np.argmax(fuzzy_membership_matrix, axis=1)
+
+
 # Figure out which pieces of data are at what point, labelled by the indices.
 groups = {}
 for i in range(0, len(labels)):
@@ -65,8 +74,8 @@ for i in range(0, len(labels)):
     else:
         groups[cluster].append(i)
 
-percentages = fcm.soft_predict(all_features)
-print(percentages)
+#percentages = fcm.soft_predict(all_features)
+print(fuzzy_membership_matrix)
 # %%
 # View clusters
 
@@ -103,4 +112,5 @@ print("Accuracy:", accuracy)
 print(classification_report(true_labels, predicted_labels, target_names=test_dataset.classes))
 
 view_cluster(8)
-plt.savefig('fig')
+#plt.savefig('fig')
+plt.show()

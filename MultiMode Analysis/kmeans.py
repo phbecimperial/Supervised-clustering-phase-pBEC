@@ -5,16 +5,35 @@ from sklearn.cluster import KMeans
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from custom_dataset import CustomDataset
+from tqdm import tqdm
 
+class CustomModel(torch.nn.Module):
+    def __init__(self, original_model):
+        super(CustomModel, self).__init__()
+        # Get all layers except the last one
+        self.features = torch.nn.Sequential(*list(original_model.children())[:-2])
+        # Add your linear layer with the appropriate input size
+        self.fc = torch.nn.Sequential(list(original_model.children())[-2])
+
+    def forward(self, x):
+        features_output = self.features(x)
+        # Flatten the output before passing it to the linear layer
+        flattened_output = features_output.view(features_output.size(0), -1)
+        linear_output = self.fc(flattened_output)
+        # Add any additional processing or layers if needed
+        return linear_output
 
 # batch_size = 64
 new_size = (224, 224)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("Saved_models/Model_2_ResNet", map_location=torch.device('cpu'))
+model = torch.load("Saved_models/Model_3_ResNet", map_location=torch.device('cpu'))
 #model = torch.load("CNN.pt", map_location=torch.device('cpu'))
 
-newmodel = torch.nn.Sequential(*(list(model.children())[:-1])) #-1 for ResNet, -2 for CNN
+newmodel = torch.nn.Sequential(*(list(model.children())[:-2])) #-1 for ResNet, -2 for CNN
+
+#newmodel = CustomModel(model)
+
 
 # transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
 #     0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
@@ -30,7 +49,7 @@ with torch.no_grad():
 
     all_features = []
 
-    for inputs, labels in test_loader:
+    for inputs, labels in tqdm(test_loader):
         inputs = inputs.to(device)
 
         outputs = newmodel(inputs)
@@ -40,11 +59,11 @@ with torch.no_grad():
 
 all_features = np.array(all_features)
 
-# Insert PCA if needed
-
+#Insert PCA if needed
 from sklearn.decomposition import PCA
+all_features = all_features.reshape(1000, -1)
 
-# all_features = PCA(2).fit_transform(all_features)
+all_features = PCA(512).fit_transform(all_features)
 
 target_names = test_dataset.classes
 kmeans = KMeans(n_clusters=len(target_names), verbose=1)
