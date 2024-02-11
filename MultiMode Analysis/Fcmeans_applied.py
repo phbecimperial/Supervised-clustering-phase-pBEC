@@ -7,6 +7,9 @@ from torch.utils.data import DataLoader
 #from fcmeans import FCM
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
+from pickle_Dataset import pickle_Dataset
+from torchvision.transforms import v2
+
 
 def view_cluster(cluster):
     indices = groups[cluster]
@@ -21,13 +24,23 @@ def view_cluster(cluster):
         img = img[0]
         plt.imshow(img)
 
-
+new_size = (224, 224)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("Res_Class_0", map_location=torch.device('cpu'))
-newmodel = torch.nn.Sequential(*(list(model.children())[:-2]))
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (
-    0.5,))])  # Transforms it to a tensor, and rescales pixel values [0, 1]
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+model = torch.load("Saved_models/Res_Class_0", map_location=torch.device('cpu'))
+newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
+newmodel = CustomModel(model)
+
+normalize = v2.Normalize(
+    mean=[0.4914],
+    std=[0.2023],
+)
+
+transform = v2.Compose([
+    v2.Resize((224, 224)),
+    normalize,
+])
+
+test_dataset = pickle_Dataset(root='Training_images', transform=transform)
 test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
 with torch.no_grad():
