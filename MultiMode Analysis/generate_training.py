@@ -117,7 +117,7 @@ if save:
     for f in glob(r'MultiMode Analysis\Training_images\*'):
         os.remove(f)
         
-ims = gererate_data(10000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
+ims = gererate_data(1000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
 
 
 for i, (img, k) in enumerate(ims):
