@@ -27,8 +27,8 @@ for i in files:
 
 for i, hist in enumerate(histories):
     #i = 11
-    plt.plot(histories[i]['train_accuracy'], label = 'Train Accuracy')
-    plt.plot(histories[i]['val_accuracy'], label = 'Val Accuracy')
+    plt.plot(histories[i]['train_loss'], label = 'Train Accuracy')
+    plt.plot(histories[i]['val_loss'], label = 'Val Accuracy')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.title(files[i])

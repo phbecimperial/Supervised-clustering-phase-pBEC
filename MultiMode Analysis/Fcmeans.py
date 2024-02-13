@@ -8,19 +8,7 @@ from torch.utils.data import DataLoader
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
 
-def view_cluster(cluster):
-    indices = groups[cluster]
-    if len(indices) > 30:
-        indices = indices[:29]
-
-    plt.figure(figsize=[25, 25])
-
-    for i in range(0, len(indices)):
-        plt.subplot(10, 10, i + 1)
-        img = test_dataset[indices[i]][0].cpu().numpy()
-        img = img[0]
-        plt.imshow(img)
-
+from Fcmeans_utils import view_cluster
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = torch.load("cnn.pt", map_location=torch.device('cpu'))
