@@ -7,9 +7,23 @@ from torch.utils.data import DataLoader
 #from fcmeans import FCM
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
-from pickle_Dataset import pickle_Dataset
-from torchvision.transforms import v2
+from pickle_Dataset import CustomDataset
 
+class CustomModel(torch.nn.Module):
+    def __init__(self, original_model):
+        super(CustomModel, self).__init__()
+        # Get all layers except the last one
+        self.features = torch.nn.Sequential(*list(original_model.children())[:-2])
+        # Add your linear layer with the appropriate input size
+        self.fc = torch.nn.Sequential(list(original_model.children())[-2])
+
+    def forward(self, x):
+        features_output = self.features(x)
+        # Flatten the output before passing it to the linear layer
+        flattened_output = features_output.view(features_output.size(0), -1)
+        linear_output = self.fc(flattened_output)
+        # Add any additional processing or layers if needed
+        return linear_output
 
 def view_cluster(cluster):
     indices = groups[cluster]
@@ -26,21 +40,12 @@ def view_cluster(cluster):
 
 new_size = (224, 224)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("Saved_models/Res_Class_0", map_location=torch.device('cpu'))
+model = torch.load("Models/Res_Class_2", map_location=torch.device('cpu'))
 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
 newmodel = CustomModel(model)
 
-normalize = v2.Normalize(
-    mean=[0.4914],
-    std=[0.2023],
-)
 
-transform = v2.Compose([
-    v2.Resize((224, 224)),
-    normalize,
-])
-
-test_dataset = pickle_Dataset(root='Training_images', transform=transform)
+test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
 test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
 with torch.no_grad():
@@ -65,14 +70,11 @@ from sklearn.decomposition import PCA
 #all_features = PCA(512).fit_transform(all_features)
 
 target_names = test_dataset.classes
-#fcm = FCM(n_clusters=len(target_names), m=2)
 
+#%%
 print("INFO: Starting clustering")
-fcm = FuzzyKMeans(k=len(target_names), m=1.5)
+fcm = FuzzyKMeans(k=2, m=1.5)
 fcm.fit(all_features)
-
-#labels = fcm.predict(all_features)
-
 fuzzy_membership_matrix = fcm.fuzzy_labels_
 labels = np.argmax(fuzzy_membership_matrix, axis=1)
 
@@ -87,43 +89,42 @@ for i in range(0, len(labels)):
     else:
         groups[cluster].append(i)
 
-#percentages = fcm.soft_predict(all_features)
 print(fuzzy_membership_matrix)
-# %%
-# View clusters
 
+# View clusters
 
 # Getting unique labels
 u_labels = np.unique(labels)
 
-# plotting the results:
-
-# for i in u_labels:
-#     plt.scatter(all_features[labels == i, 0], all_features[labels == i, 1], label=i)
-# plt.legend()
-# plt.show()
-
 from sklearn.metrics import accuracy_score, classification_report
 
-# Assuming you have true labels for the MNIST dataset
-true_labels = test_dataset.targets.numpy()
+# Assuming you have true labels
+
+
+targets = test_dataset.targets
+array_of_arrays = np.array([[int(char) for char in string] for string in targets])
+
+# Transpose the array
+true_lab = array_of_arrays.T
+
+#For model 0
+true_labels = true_lab[2]
+
 
 # Map cluster labels to the most frequent true class in each cluster
-cluster_to_class = {}
-for cluster in np.unique(labels):
-    mask = (labels == cluster)
-    most_frequent_class = np.argmax(np.bincount(true_labels[mask]))
-    cluster_to_class[cluster] = most_frequent_class
+# cluster_to_class = {}
+# for cluster in np.unique(labels):
+#     mask = (labels == cluster)
+#     most_frequent_class = np.argmax(np.bincount(true_labels[mask]))
+#     cluster_to_class[cluster] = most_frequent_class
+#
+# # Map cluster labels to predicted labels
+# predicted_labels = np.array([cluster_to_class[cluster] for cluster in labels])
 
-# Map cluster labels to predicted labels
-predicted_labels = np.array([cluster_to_class[cluster] for cluster in labels])
+predicted_labels = labels
 
 # Calculate accuracy
 accuracy = accuracy_score(true_labels, predicted_labels)
 print("Accuracy:", accuracy)
 
-print(classification_report(true_labels, predicted_labels, target_names=test_dataset.classes))
-
-view_cluster(8)
-#plt.savefig('fig')
-plt.show()
+print(classification_report(true_labels, abs(predicted_labels-1), target_names=['Other', '[0,2]']))
