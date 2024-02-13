@@ -75,21 +75,21 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
         
 
-        if i > stop_check:
-
-            train_window = np.array(history['train_accuracy'])[i-(stop_check - 1):i]
-            train_fit = np.polyfit(np.arange(train_window.size), train_window, deg=1)
-
-            val_window = np.array(history['val_accuracy'])[i-(stop_check - 1):i]
-            val_fit = np.polyfit(np.arange(val_window.size), val_window, deg=1)
-
-
-            if train_fit[0] > 0 and val_fit[0] < 0:
-                strikes += 1
-            else:
-                strikes = 0
-            if strikes > 3:
-                return model, history
+        # if i > stop_check:
+        #
+        #     train_window = np.array(history['train_accuracy'])[i-(stop_check - 1):i]
+        #     train_fit = np.polyfit(np.arange(train_window.size), train_window, deg=1)
+        #
+        #     val_window = np.array(history['val_accuracy'])[i-(stop_check - 1):i]
+        #     val_fit = np.polyfit(np.arange(val_window.size), val_window, deg=1)
+        #
+        #
+        #     if train_fit[0] > 0 and val_fit[0] < 0:
+        #         strikes += 1
+        #     else:
+        #         strikes = 0
+        #     if strikes > 3:
+        #         return model, history
 
     return model, history
 
@@ -97,7 +97,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 classes = 13
-epochs = 100
+epochs = 50
 criterion = torch.nn.CrossEntropyLoss()
 learning_rate = 0.01
 val_split = 0.2
@@ -132,7 +132,7 @@ for i in tqdm(range(classes), leave=True):
     }
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.001, momentum = 0.9)  
     model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, stop_check=25)
-    torch.save(model, r'Models\Res_Class_' + str(i), pkl)
+    torch.save(model, r'Models\Res_Class_' + str(i) + '.pt', pkl)
     with open(r'Models\Res_Class_' + str(i) + 'history', 'wb') as f:
         pkl.dump(history, f)
     del model

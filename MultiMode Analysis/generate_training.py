@@ -114,10 +114,10 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 save = True
 
 if save:
-    for f in glob(r'MultiMode Analysis\Training_images\*'):
+    for f in glob(r'Training_images\*'):
         os.remove(f)
         
-ims = gererate_data(1000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False)
+ims = gererate_data(10000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False, mult_las_split=0)
 
 
 for i, (img, k) in enumerate(ims):
