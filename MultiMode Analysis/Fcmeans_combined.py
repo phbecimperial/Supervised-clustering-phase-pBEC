@@ -14,7 +14,7 @@ import torch.nn as nn
 
 models = []
 
-for i in range(0, 13):
+for i in range(0, 10):
     model = torch.load("Models/Res_Class_{}.pt".format(i))
     newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
     newmodel = CustomModel(model)
@@ -46,7 +46,7 @@ all_features = np.array(all_features)
 target_names = test_dataset.classes
 
 # print("INFO: Starting clustering")
-fcm = FuzzyKMeans(k=2, m=1.5)
+fcm = FuzzyKMeans(k=10, m=1.5)
 fcm.fit(all_features)
 fuzzy_membership_matrix = fcm.fuzzy_labels_
 labels = np.argmax(fuzzy_membership_matrix, axis=1)
@@ -79,7 +79,7 @@ from sklearn.decomposition import PCA
 
 # Initialise
 pca = PCA(n_components=2)
-pca.fit(true_lab)
+pca.fit(true_lab.T)
 
 # Explained variance ratio
 print("Explained variance ratio:", pca.explained_variance_ratio_)
@@ -87,7 +87,7 @@ print("Explained variance ratio:", pca.explained_variance_ratio_)
 # Principal components
 print("Principal components:", pca.components_)
 
-result = pca.transform(true_lab)
+result = pca.transform(true_lab.T)
 
 # Assuming X_pca has shape (n_samples, 2)
 plt.scatter(result[:, 0], result[:, 1])

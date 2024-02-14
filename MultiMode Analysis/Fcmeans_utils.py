@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 class CustomModel(torch.nn.Module):
     def __init__(self, original_model):
         super(CustomModel, self).__init__()
@@ -26,7 +27,7 @@ class CombinedModel(nn.Module):
         outputs = []
         for model in self.models:
             outputs.append(model(x))
-        combined_output = torch.cat(outputs, dim=1)  # Concatenate along the feature dimension
+        combined_output = torch.cat(outputs, dim=1)  # Concatenate features
         return combined_output
 
 def view_cluster(cluster):

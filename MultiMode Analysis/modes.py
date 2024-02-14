@@ -35,22 +35,23 @@ def mode_nums():
     nm1 = randint(0,3)
 
     if nm1 == 0: nm2 = randint(0,6)
-    elif nm1 == 1: nm2 = randint(0,4)
-    else: nm2 = randint(0,3)
+    elif nm1 == 1: nm2 = randint(1,3)
+    else: nm2 = 2
 
     return [nm1, nm2]
 
-def mode_func(multi_split = 0.5):
+def mode_func(multi_split = 0.5, modelist = None):
+
     n = randint(1,5)
     ms = []
     for i in range(n):
         if multi_split > random() and i == 1:
             newmode = [0,0]
         else:
-            newmode = mode_nums()
+            newmode = modelist[randint(0,len(modelist))]
         
         while newmode in ms:
-            newmode = mode_nums()
+            newmode = modelist[randint(0,len(modelist))]
         ms.append(newmode)
     
     outputs = [] 
@@ -61,9 +62,7 @@ def mode_func(multi_split = 0.5):
             outputs.append(Tensor([0,1]))
     return ms, stack(outputs)
 
-modelist = [
-    [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,0], [1,1], [1,2], [1,3], [2,0], [2,1], [2,2]
-]
+
 
 names = [
     '[0,0]', '[0,1]', '[0,2]', '[0,3]', '[0,4]', '[0,5]', '[1,0]', '[1,1]', '[1,2]', '[1,3]', '[2,0]', '[2,1]', '[2,2]'

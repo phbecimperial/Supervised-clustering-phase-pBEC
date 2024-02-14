@@ -8,7 +8,8 @@ from Fcmeans_utils import CustomModel
 import torch
 
 all_pred = []
-for i in range(0, 13):
+all_fuzz = []
+for i in range(0, 10):
     phase = i
 
     new_size = (224, 224)
@@ -25,7 +26,7 @@ for i in range(0, 13):
 
         all_features = []
 
-        for inputs, labels in tqdm(test_loader):
+        for inputs, labels in tqdm(test_loader, leave=True):
             inputs = inputs.to(device)
 
             outputs = newmodel(inputs)
@@ -40,7 +41,7 @@ for i in range(0, 13):
 
     #%%
     #print("INFO: Starting clustering")
-    fcm = FuzzyKMeans(k=2, m=1.5)
+    fcm = FuzzyKMeans(k=2, m=2)
     fcm.fit(all_features)
     fuzzy_membership_matrix = fcm.fuzzy_labels_
     labels = np.argmax(fuzzy_membership_matrix, axis=1)
@@ -88,9 +89,14 @@ for i in range(0, 13):
     print(classification_report(true_labels, predicted_labels, target_names=['A', 'B']))
 
     all_pred.append(predicted_labels)
+    all_fuzz.append(fuzzy_membership_matrix)
 
 
-diff = np.abs(all_pred - true_lab)
+diff = np.abs(np.array(all_pred) - true_lab)
 diff = np.sum(diff)
 print(1 - diff/10000)
+
+all_fuzz = np.array(all_fuzz)
+
+np.save(all_fuzz, 'FuzzyMembershipMatrix.np')
 
