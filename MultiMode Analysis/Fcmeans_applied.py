@@ -98,5 +98,5 @@ print(1 - diff/10000)
 
 all_fuzz = np.array(all_fuzz)
 
-np.save(all_fuzz, 'FuzzyMembershipMatrix.np')
+np.save('FuzzyMembershipMatrix', all_fuzz)
 
