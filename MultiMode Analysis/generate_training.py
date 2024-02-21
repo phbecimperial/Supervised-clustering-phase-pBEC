@@ -101,7 +101,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         im = np.round(im, decimals=1) / 255
         if save:
             # Using mgzip to compress pickles
-            with lzma.open(r'Training_images_2\training_image' + '@' +
+            with lzma.open(r'Training_images\training_image' + '@' +
                            str(i) + '@' + ''.join(
                                ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
                                ) + '.pkl.xz', 'wb') as f:
@@ -111,20 +111,47 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             images.append((im,outputs))
     return images
 
+# save = True
+#
+# if save:
+#     for f in glob(r'Training_images\*'):
+#         os.remove(f)
+#
+# modelist = [
+#     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
+# ]
+# ims = gererate_data(30000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False, mult_las_split=0)
+#
+#
+# for i, (img, k) in enumerate(ims):
+#     plt.imshow(img)
+#     plt.title(str(k))
+#     plt.show()
+
+import concurrent.futures
+
+def generate_data_worker(args):
+    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG = args
+
+    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG)
+
+def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
+                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, LG=True):
+    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG) for i in range(num_threads)]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(generate_data_worker, args_list))
+    return results
+
 save = True
 
 if save:
-    for f in glob(r'Training_images_2\*'):
+    for f in glob(r'Training_images\*'):
         os.remove(f)
 
 modelist = [
     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
 ]
-ims = gererate_data(10000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False, mult_las_split=0)
 
-
-for i, (img, k) in enumerate(ims):
-    plt.imshow(img)
-    plt.title(str(k))
-    plt.show()
-
+#threads
+num_threads = 20
+ims = generate_data_multithreaded(num_threads, 50000 // num_threads, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save=save, LG=False, mult_las_split=0)

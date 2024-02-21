@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.nn import Module as M
 from tqdm import tqdm as tqdm
 
-
+dropout = 0.4
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride = 1, downsample = None):
@@ -26,6 +26,7 @@ class ResidualBlock(nn.Module):
                         nn.BatchNorm2d(out_channels))
         self.downsample = downsample
         self.relu = nn.ReLU()
+        #self.relu = nn.Sequential(nn.ReLU(), nn.Dropout2d(dropout))
         self.out_channels = out_channels
 
     def forward(self, x):

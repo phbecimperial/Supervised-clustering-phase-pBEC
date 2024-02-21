@@ -37,4 +37,12 @@ for i, hist in enumerate(histories):
     plt.legend()
     plt.show()
 
+    plt.plot(histories[i]['train_loss'], label = 'Train Loss')
+    plt.plot(histories[i]['val_loss'], label = 'Val Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title(files[i])
+    plt.legend()
+    plt.show()
+
 

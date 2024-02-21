@@ -6,6 +6,7 @@ from tqdm import tqdm
 from pickle_Dataset import CustomDataset
 from Fcmeans_utils import CustomModel
 import torch
+import pickle
 
 all_pred = []
 all_fuzz = []
@@ -18,7 +19,7 @@ for i in range(0, 10):
     newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
     newmodel = CustomModel(model)
 
-    test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
+    test_dataset = CustomDataset(root_dir='Training_images_2', new_size=(224, 224))
     test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     with torch.no_grad():
@@ -27,6 +28,8 @@ for i in range(0, 10):
         all_features = []
 
         for inputs, labels in tqdm(test_loader, leave=True):
+
+
             inputs = inputs.to(device)
 
             outputs = newmodel(inputs)
@@ -41,7 +44,7 @@ for i in range(0, 10):
 
     #%%
     #print("INFO: Starting clustering")
-    fcm = FuzzyKMeans(k=2, m=2)
+    fcm = FuzzyKMeans(k=2, m=5)
     fcm.fit(all_features)
     fuzzy_membership_matrix = fcm.fuzzy_labels_
     labels = np.argmax(fuzzy_membership_matrix, axis=1)
@@ -91,12 +94,15 @@ for i in range(0, 10):
     all_pred.append(predicted_labels)
     all_fuzz.append(fuzzy_membership_matrix)
 
+    with open('fcm.pkl' + str(phase), 'wb') as f:
+        pickle.dump((fcm.cluster_centers_, fcm.fuzzy_membership_matrix, cluster_to_class), f)
+
 
 diff = np.abs(np.array(all_pred) - true_lab)
 diff = np.sum(diff)
 print(1 - diff/10000)
 
-all_fuzz = np.array(all_fuzz)
+#all_fuzz = np.array(all_fuzz)
 
-np.save('FuzzyMembershipMatrix', all_fuzz)
+#np.save('FuzzyMembershipMatrix_2', all_fuzz)
 

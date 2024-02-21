@@ -24,7 +24,7 @@ new_size = (224, 224)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 combined_model = CombinedModel(models)
 
-test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
+test_dataset = CustomDataset(root_dir='Training_images_2', new_size=(224, 224))
 test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
 with torch.no_grad():

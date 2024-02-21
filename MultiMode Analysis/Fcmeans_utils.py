@@ -30,7 +30,7 @@ class CombinedModel(nn.Module):
         combined_output = torch.cat(outputs, dim=1)  # Concatenate features
         return combined_output
 
-def view_cluster(cluster):
+def view_cluster(cluster, groups, test_dataset):
     indices = groups[cluster]
     if len(indices) > 30:
         indices = indices[:29]
