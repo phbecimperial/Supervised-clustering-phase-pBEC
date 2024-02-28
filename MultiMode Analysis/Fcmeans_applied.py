@@ -95,7 +95,7 @@ for i in range(0, 10):
     all_fuzz.append(fuzzy_membership_matrix)
 
     with open('fcm.pkl' + str(phase), 'wb') as f:
-        pickle.dump((fcm.cluster_centers_, fcm.fuzzy_membership_matrix, cluster_to_class), f)
+        pickle.dump((fcm.cluster_centers_, fuzzy_membership_matrix, cluster_to_class), f)
 
 
 diff = np.abs(np.array(all_pred) - true_lab)

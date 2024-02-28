@@ -86,7 +86,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
-        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(5,20))
+        # im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(5,20))
 
         im_avg = np.mean(im)
         im += im * np.random.random(im.shape) + np.random.random()*np.random.normal(im_avg/2, np.std(im), im.shape)
