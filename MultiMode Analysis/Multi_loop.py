@@ -1,22 +1,22 @@
 import torch
 import pickle as pkl
 from torch.utils.data import DataLoader
-from torchvision import datasets
 from torchvision.transforms import v2
 from mode_classifier import ResNet, ResidualBlock
 from tqdm import tqdm as tqdm
-from sklearn.metrics import classification_report
-import time
-import numpy as np
-import argparse
 from pickle_Dataset import pickle_Dataset
 import gc
+from torch.cuda.amp import autocast, GradScaler
 
 
-def Training(model, epochs, label, optimizer, train_loader, val_loader, history, stop_check = 15):  
+
+def Training(model, epochs, label, optimizer, train_loader, val_loader, history, criterion, stop_check = 15):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     iter = tqdm(range(epochs), leave=True)
     strikes = 0
+    scaler = GradScaler()
+
     for i in iter:
         model.train()
 
@@ -26,13 +26,21 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
         total_loss = 0
         for inputs, keys in train_loader:
             inputs, keys = inputs.to(device), torch.select(keys, 1, label).to(device)
-            outputs = model(inputs)
-            optimizer.zero_grad()
+            with autocast():
+                #inputs = inputs.to(memory_format=torch.channels_last)
+                #model=model.to(memory_format=torch.channels_last)
+                outputs = model(inputs)
+                optimizer.zero_grad()
 
-            loss = criterion(outputs, keys)
-            loss.backward()
+                keys = keys.float()
+                loss = criterion(outputs, keys)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            #loss.backward()
             total_loss += loss
-            optimizer.step()
+            #optimizer.step()
 
             _, predicted = torch.max(outputs.data, 1)
             total += keys.size(0)
@@ -57,12 +65,16 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
             for images, keys in val_loader:
                 images = images.to(device)
                 keys = torch.select(keys, 1, label).to(device)
+                #images = images.to(memory_format=torch.channels_last)
+                #model=model.to(memory_format=torch.channels_last)
                 outputs = model(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += keys.size(0)
                 _, correct_keys =  torch.max(keys.data, 1)
                 correct += (predicted == correct_keys).sum().item()
 
+                outputs = torch.sigmoid(outputs)
+                keys = keys.float()
                 loss = criterion(outputs, keys)
                 total_loss += loss
                 steps += 1
@@ -72,6 +84,12 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
             history['val_loss'].append(loss.cpu().detach().numpy() / steps)
 
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
+            if (correct/total) > max(history['val_accuracy']):
+                torch.save(model, r'Models\Res_Class_' + str(i) + '.pt', pkl)
+                with open(r'Models\Res_Class_' + str(label) + 'history', 'wb') as f:
+                    pkl.dump(history, f)
+                del model
+
 
         
 
@@ -93,49 +111,50 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
     return model, history
 
+if __name__ == "__main__":
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    classes = 10
+    epochs = 30
+    criterion = torch.nn.BCEWithLogitsLoss()
+    learning_rate = 0.01
+    val_split = 0.2
+    batch_size = 64
+    best_accuracy = 0.0
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-classes = 13
-epochs = 50
-criterion = torch.nn.CrossEntropyLoss()
-learning_rate = 0.01
-val_split = 0.2
-batch_size = 64
+    transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224)), v2.Normalize((0.5,), (
+        0.5,))])
 
-transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224)), v2.Normalize((0.5,), (
-    0.5,))])
-
-train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform)
+    train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform)
 
 
-numTrainSamp = int(len(train_dataset)) * (1 - val_split)
-numValSamp = int(len(train_dataset)) * val_split
-
-
-
-(train_dataset, validate_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp)],
-                                                                                generator=None)
-
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle=True)
+    numTrainSamp = round(len(train_dataset) * (1 - val_split))
+    numValSamp = len(train_dataset) - numTrainSamp
 
 
 
-for i in tqdm(range(classes), leave=True):
-    model = ResNet(ResidualBlock, [2, 2, 2, 2], 2)
-    history = {
-    "train_loss": [],
-    "train_accuracy": [],
-    "val_accuracy": [],
-    "val_loss": []
-    }
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.001, momentum = 0.9)  
-    model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, stop_check=25)
-    torch.save(model, r'Models\Res_Class_' + str(i) + '.pt', pkl)
-    with open(r'Models\Res_Class_' + str(i) + 'history', 'wb') as f:
-        pkl.dump(history, f)
-    del model
+    (train_dataset, validate_dataset) = torch.utils.data.random_split(train_dataset, [int(numTrainSamp), int(numValSamp)],
+                                                                                    generator=None)
+
+    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(dataset=validate_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+
+
+
+
+    for i in tqdm(range(classes), leave=True):
+        model = ResNet(ResidualBlock, [2, 1, 1, 1], 2)
+
+        # append_dropout(model)
+        history = {
+        "train_loss": [],
+        "train_accuracy": [],
+        "val_accuracy": [],
+        "val_loss": []
+        }
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.01, momentum = 0.9)
+        model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
+
 
 
 

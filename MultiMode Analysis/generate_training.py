@@ -12,7 +12,7 @@ import pickle as pkl
 from scipy.ndimage import rotate, gaussian_filter, zoom
 from scipy.fft import fft2, fftshift
 import cv2 as cv
-from modes import mode_func, modelist
+from modes import mode_func
 from LightPipes import * 
 from tqdm import tqdm
 import torch
@@ -41,7 +41,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        comb, outputs = mode_func(mult_las_split)
+        comb, outputs = mode_func(mult_las_split, modes)
         #comb = modes[np.random.randint(0, len(modes)-1)]
 
         amps = 0.05 + np.random.random(len(comb))*0.95
@@ -111,17 +111,47 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             images.append((im,outputs))
     return images
 
+# save = True
+#
+# if save:
+#     for f in glob(r'Training_images\*'):
+#         os.remove(f)
+#
+# modelist = [
+#     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
+# ]
+# ims = gererate_data(30000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False, mult_las_split=0)
+#
+#
+# for i, (img, k) in enumerate(ims):
+#     plt.imshow(img)
+#     plt.title(str(k))
+#     plt.show()
+
+import concurrent.futures
+
+def generate_data_worker(args):
+    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG = args
+
+    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG)
+
+def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
+                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, LG=True):
+    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG) for i in range(num_threads)]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(generate_data_worker, args_list))
+    return results
+
 save = True
 
 if save:
     for f in glob(r'Training_images\*'):
         os.remove(f)
-        
-ims = gererate_data(10000, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save = save, LG = False, mult_las_split=0)
 
+modelist = [
+    [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
+]
 
-for i, (img, k) in enumerate(ims):
-    plt.imshow(img)
-    plt.title(str(k))
-    plt.show()
-
+#threads
+num_threads = 20
+ims = generate_data_multithreaded(num_threads, 50000 // num_threads, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save=save, LG=False, mult_las_split=0)

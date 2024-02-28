@@ -2,4 +2,5 @@
 *.pkl.gz
 **/data
 **/__pycache__
+**/Training_images_2
 

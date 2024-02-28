@@ -1,130 +1,108 @@
 import matplotlib.pyplot as plt
-import torch
 import numpy as np
-# from sklearn.cluster import KMeans
-from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-#from fcmeans import FCM
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
 from pickle_Dataset import CustomDataset
+from Fcmeans_utils import CustomModel
+import torch
+import pickle
 
-class CustomModel(torch.nn.Module):
-    def __init__(self, original_model):
-        super(CustomModel, self).__init__()
-        # Get all layers except the last one
-        self.features = torch.nn.Sequential(*list(original_model.children())[:-2])
-        # Add your linear layer with the appropriate input size
-        self.fc = torch.nn.Sequential(list(original_model.children())[-2])
+all_pred = []
+all_fuzz = []
+for i in range(0, 10):
+    phase = i
 
-    def forward(self, x):
-        features_output = self.features(x)
-        # Flatten the output before passing it to the linear layer
-        flattened_output = features_output.view(features_output.size(0), -1)
-        linear_output = self.fc(flattened_output)
-        # Add any additional processing or layers if needed
-        return linear_output
+    new_size = (224, 224)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = torch.load("Models/Res_Class_{}".format(phase), map_location=torch.device('cpu'))
+    newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
+    newmodel = CustomModel(model)
 
-def view_cluster(cluster):
-    indices = groups[cluster]
-    if len(indices) > 30:
-        indices = indices[:29]
+    test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
+    test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
-    plt.figure(figsize=[25, 25])
+    with torch.no_grad():
+        model.eval()
 
-    for i in range(0, len(indices)):
-        plt.subplot(10, 10, i + 1)
-        img = test_dataset[indices[i]][0].cpu().numpy()
-        img = img[0]
-        plt.imshow(img)
+        all_features = []
 
-new_size = (224, 224)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = torch.load("Models/Res_Class_2", map_location=torch.device('cpu'))
-newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
-newmodel = CustomModel(model)
+        for inputs, labels in tqdm(test_loader, leave=True):
 
 
-test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
-test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+            inputs = inputs.to(device)
 
-with torch.no_grad():
-    model.eval()
+            outputs = newmodel(inputs)
+            outputs = outputs.cpu().numpy()
+            outputs = outputs[0].tolist()
+            all_features.append(outputs) #Test
 
-    all_features = []
+    all_features = np.array(all_features)
 
-    for inputs, labels in tqdm(test_loader):
-        inputs = inputs.to(device)
+    # Insert PCA if needed
+    target_names = test_dataset.classes
 
-        outputs = newmodel(inputs)
-        outputs = outputs.cpu().numpy()
-        outputs = outputs[0].tolist()
-        all_features.append(outputs) #Test
+    #%%
+    #print("INFO: Starting clustering")
+    fcm = FuzzyKMeans(k=2, m=5)
+    fcm.fit(all_features)
+    fuzzy_membership_matrix = fcm.fuzzy_labels_
+    labels = np.argmax(fuzzy_membership_matrix, axis=1)
 
-all_features = np.array(all_features)
+    # Figure out which pieces of data are at what point, labelled by the indices.
+    groups = {}
+    for i in range(0, len(labels)):
+        cluster = labels[i]
+        if labels[i] not in groups.keys():
+            groups[cluster] = []
+            groups[cluster].append(i)
+        else:
+            groups[cluster].append(i)
 
-# Insert PCA if needed
+    #print(fuzzy_membership_matrix)
+    # Getting unique labels
+    u_labels = np.unique(labels)
 
-from sklearn.decomposition import PCA
+    from sklearn.metrics import accuracy_score, classification_report
 
-#all_features = PCA(512).fit_transform(all_features)
+    # Assuming you have true labels
+    targets = test_dataset.targets
+    array_of_arrays = np.array([[int(char) for char in string] for string in targets])
+    true_lab = array_of_arrays.T
 
-target_names = test_dataset.classes
-
-#%%
-print("INFO: Starting clustering")
-fcm = FuzzyKMeans(k=2, m=1.5)
-fcm.fit(all_features)
-fuzzy_membership_matrix = fcm.fuzzy_labels_
-labels = np.argmax(fuzzy_membership_matrix, axis=1)
-
-
-# Figure out which pieces of data are at what point, labelled by the indices.
-groups = {}
-for i in range(0, len(labels)):
-    cluster = labels[i]
-    if labels[i] not in groups.keys():
-        groups[cluster] = []
-        groups[cluster].append(i)
-    else:
-        groups[cluster].append(i)
-
-print(fuzzy_membership_matrix)
-
-# View clusters
-
-# Getting unique labels
-u_labels = np.unique(labels)
-
-from sklearn.metrics import accuracy_score, classification_report
-
-# Assuming you have true labels
+    #Depending on the model
+    true_labels = true_lab[phase]
 
 
-targets = test_dataset.targets
-array_of_arrays = np.array([[int(char) for char in string] for string in targets])
+    # Map cluster labels to the most frequent true class in each cluster
+    cluster_to_class = {}
+    for cluster in np.unique(labels):
+        mask = (labels == cluster)
+        most_frequent_class = np.argmax(np.bincount(true_labels[mask]))
+        cluster_to_class[cluster] = most_frequent_class
 
-# Transpose the array
-true_lab = array_of_arrays.T
+    # Map cluster labels to predicted labels
+    predicted_labels = np.array([cluster_to_class[cluster] for cluster in labels])
 
-#For model 0
-true_labels = true_lab[2]
+    # Calculate accuracy
+    accuracy = accuracy_score(true_labels, predicted_labels)
+    print("Accuracy:", accuracy)
+    print('Labels and counts', np.unique(predicted_labels, return_counts=True))
+
+    print(classification_report(true_labels, predicted_labels, target_names=['A', 'B']))
+
+    all_pred.append(predicted_labels)
+    all_fuzz.append(fuzzy_membership_matrix)
+
+    with open('fcm.pkl' + str(phase), 'wb') as f:
+        pickle.dump((fcm.cluster_centers_, fcm.fuzzy_membership_matrix, cluster_to_class), f)
 
 
-# Map cluster labels to the most frequent true class in each cluster
-# cluster_to_class = {}
-# for cluster in np.unique(labels):
-#     mask = (labels == cluster)
-#     most_frequent_class = np.argmax(np.bincount(true_labels[mask]))
-#     cluster_to_class[cluster] = most_frequent_class
-#
-# # Map cluster labels to predicted labels
-# predicted_labels = np.array([cluster_to_class[cluster] for cluster in labels])
+diff = np.abs(np.array(all_pred) - true_lab)
+diff = np.sum(diff)
+print(1 - diff/10000)
 
-predicted_labels = labels
+#all_fuzz = np.array(all_fuzz)
 
-# Calculate accuracy
-accuracy = accuracy_score(true_labels, predicted_labels)
-print("Accuracy:", accuracy)
+#np.save('FuzzyMembershipMatrix_2', all_fuzz)
 
-print(classification_report(true_labels, abs(predicted_labels-1), target_names=['Other', '[0,2]']))
