@@ -41,14 +41,15 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        comb, outputs = mode_func(mult_las_split, modes)
+        #comb, outputs = mode_func(mult_las_split, modes)
         #comb = modes[np.random.randint(0, len(modes)-1)]
-
+        comb = [1]
+        outputs = []
         amps = 0.05 + np.random.random(len(comb))*0.95
         amps = amps/max(amps)
         for j, (mode, amp) in enumerate(zip(comb, amps)):
 
-            addbeam = GaussBeam(beam, w0=w0, n=mode[0], m=mode[1], LG=LG)
+            addbeam = GaussBeam(beam, w0=w0, n=modes[0], m=modes[1], LG=LG)
             addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
             addbeam = Normal(addbeam)
             addbeam = IntAttenuator(addbeam, amp)
@@ -101,22 +102,22 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         im = np.round(im, decimals=1) / 255
         if save:
             # Using mgzip to compress pickles
-            with lzma.open(r'Training_images\training_image' + '@' +
+            with open(r'Training_images\training_image' + '@' +
                            str(i) + '@' + ''.join(
                                ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
-                               ) + '.pkl.xz', 'wb') as f:
+                               ) + '.pkl', 'wb') as f:
                 pkl.dump((im, outputs), f)
             f.close()
         else:    
             images.append((im,outputs))
     return images
 
-# save = True
-#
-# if save:
-#     for f in glob(r'Training_images\*'):
-#         os.remove(f)
-#
+save = True
+
+if save:
+    for f in glob(r'Training_images\*'):
+        os.remove(f)
+
 # modelist = [
 #     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
 # ]
@@ -144,14 +145,16 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
 
 save = True
 
-if save:
-    for f in glob(r'Training_images\*'):
-        os.remove(f)
+# if save:
+#     for f in glob(r'Training_images\*'):
+#         os.remove(f)
 
 modelist = [
     [0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [1,1], [1,2], [1,3], [2,2]
 ]
 
+gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
+
 #threads
-num_threads = 20
-ims = generate_data_multithreaded(num_threads, 50000 // num_threads, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save=save, LG=False, mult_las_split=0)
+#num_threads = 20
+#ims = generate_data_multithreaded(num_threads, 50000 // num_threads, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save=save, LG=False, mult_las_split=0)
