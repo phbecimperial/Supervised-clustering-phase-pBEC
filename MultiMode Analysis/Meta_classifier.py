@@ -9,6 +9,8 @@ from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from glob import glob
+from torchvision import transforms
+from PIL import Image
 
 
 
@@ -29,34 +31,46 @@ def predeict_images(files, phases = 10, num_clusters = 10):
 
     img_features = []
 
-    for i, f in enumerate(files): 
-            
-        device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    with torch.no_grad():
 
-        all_features = []
+        for i, f in enumerate(files):
 
-        for i in range(phases):
-            model = torch.load("MultiMode Analysis/Models/Res_Class_{}.pt".format(i))
-            newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
-            newmodel = CustomModel(model)
+            device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
-            test_dataset = Predict_Dataset([f])
-            loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+            all_features = []
 
-            with torch.no_grad():
-                for inputs in loader:
-                    model.eval()
+            for i in range(phases):
+                model = torch.load("Models/Res_Class_{}.pt".format(i))
+                newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
+                newmodel = CustomModel(model)
+
+                #test_dataset = Predict_Dataset([f])
+                #loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+
+                # Define transformations to apply to the image
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224)),  # Resize the image to a fixed size
+                    transforms.ToTensor()           # Convert the image to a PyTorch tensor
+                ])
+
+                # Load the image
+                #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
+                image = Image.open(f)
+                # Apply transformations
+                input_image = transform(image)
+                input_image = input_image.unsqueeze(0)
+
+                model.eval()
+
+                inputs = input_image.to(device)
+                outputs = newmodel(inputs)
+                outputs = outputs.cpu().numpy()
+                outputs = outputs[0]
+                all_features.append(outputs)
 
 
-                    
-                    inputs = inputs.to(device)
-                    outputs = newmodel(inputs)
-                    outputs = outputs.cpu().numpy()
-                    outputs = outputs[0].tonumpy()
-                    all_features.append(outputs)
-                
-        img_features.append(np.array(all_features).flatten())
-    
+            img_features.append(np.array(all_features).flatten())
+
     img_features = np.array(img_features)
     
 
@@ -95,7 +109,8 @@ def predeict_images(files, phases = 10, num_clusters = 10):
 root_dir = 'INSERT HERE'
 
 if __name__ == '__main__':
-    files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
+    files = glob(r'C:\Data\Phase\*.bmp')
+    #files = glob(r'Training_images_2')
 
     print(predeict_images(files,10,3))
 
