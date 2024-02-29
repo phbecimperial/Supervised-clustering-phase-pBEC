@@ -41,6 +41,7 @@ import lzma
 import torch
 from modes import names
 import numpy as np
+import cv2
 
 
 class CustomDataset(Dataset):
@@ -78,3 +79,26 @@ class CustomDataset(Dataset):
 
         label = torch.tensor(label, dtype = torch.long)
         return image, label
+    
+
+
+class Predict_Dataset(Dataset):
+    """
+    Lightwieght dataset for predicting bmp and png files.
+    """
+    def __init__(self, file_list, new_size = (244,244)) -> None:
+        self.file_list = file_list
+        self.transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Resize(new_size, antialias=True),  transforms.Normalize((0.5,), (
+                0.5,))])
+
+
+    def __len__(self):
+        return len(self.file_list)
+
+    def __getitem__(self, index):
+        image = cv2.imread(self.file_list[index], 0)
+        image = self.transform(image)
+        #image = image.to(torch.float32)
+
+        return image

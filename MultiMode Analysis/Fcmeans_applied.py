@@ -15,11 +15,11 @@ for i in range(0, 10):
 
     new_size = (224, 224)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = torch.load("Models/Res_Class_{}".format(phase), map_location=torch.device('cpu'))
+    model = torch.load("Models/Res_Class_{}.pt".format(phase))
     newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
     newmodel = CustomModel(model)
 
-    test_dataset = CustomDataset(root_dir='Training_images', new_size=(224, 224))
+    test_dataset = CustomDataset(root_dir='Training_images_2', new_size=(224, 224))
     test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     with torch.no_grad():
@@ -95,7 +95,7 @@ for i in range(0, 10):
     all_fuzz.append(fuzzy_membership_matrix)
 
     with open('fcm.pkl' + str(phase), 'wb') as f:
-        pickle.dump((fcm.cluster_centers_, fcm.fuzzy_membership_matrix, cluster_to_class), f)
+        pickle.dump((fcm.cluster_centers_, fuzzy_membership_matrix, cluster_to_class), f)
 
 
 diff = np.abs(np.array(all_pred) - true_lab)
