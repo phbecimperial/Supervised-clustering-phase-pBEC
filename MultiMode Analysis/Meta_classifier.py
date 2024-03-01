@@ -156,8 +156,15 @@ root_dir = 'INSERT HERE'
 
 if __name__ == '__main__':
     files = glob(r'C:\Data\Phase\*.bmp')
-    #files = glob(r'Training_images_2')
-    labels = predeict_images_fc(files,10,5, 2)
+    int_times = []
+    for file in files:
+        split_file = file.split('_')
+        int_times.append(float(split_file[3]))
+    int_times =  np.array(int_times)
+    files = np.array(files)
+    files = files[int_times < np.max(int_times)]
+
+    labels = predeict_images_k(files,10,4)
     print(labels)
 
     with open('predicted_labels.pkl', 'wb') as f:
