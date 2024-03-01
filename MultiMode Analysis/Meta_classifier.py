@@ -83,7 +83,7 @@ def predeict_images_k(files, phases = 10, num_clusters = 10):
     kmeans.fit(x)
 
 
-    return kmeans.labels_
+    return kmeans.labels_, None
 
 
 def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
@@ -139,8 +139,10 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
     fuzzy_membership_matrix = fcm.fuzzy_labels_
     fuzzy_membership_matrix = fuzzy_membership_matrix.T
 
+    alpha = np.max(fuzzy_membership_matrix, axis=0)
+    labels = np.argmax(fuzzy_membership_matrix, axis=0)
 
-    return fuzzy_membership_matrix
+    return labels, alpha
 
 
             
