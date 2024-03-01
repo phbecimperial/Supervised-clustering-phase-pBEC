@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 import torch
-from Fcmeans_utils import CustomModel
+from Fcmeans_utils import CustomModel, CombinedModel
 from torch.utils.data import DataLoader
 from pickle_Dataset import CustomDataset, Predict_Dataset
 from tqdm import tqdm
@@ -11,12 +11,14 @@ from sklearn.cluster import KMeans
 from glob import glob
 from torchvision import transforms
 from PIL import Image
+from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
+
 
 
 
 # Load centroids and membership values from file
 
-def predict(data, cluster_centres, m):
+def predict(data, cluster_centres, m, classifer_model):
         D = 1.0 / euclidean_distances(data, cluster_centres, squared=True)
         D **= 1.0 / (m - 1)
         D /= np.sum(D, axis=1)[:, np.newaxis]
@@ -25,7 +27,7 @@ def predict(data, cluster_centres, m):
 
 
 
-def predeict_images(files, phases = 10, num_clusters = 10):
+def predeict_images_k(files, phases = 10, num_clusters = 10):
 
     print(files)
 
@@ -33,7 +35,7 @@ def predeict_images(files, phases = 10, num_clusters = 10):
 
     with torch.no_grad():
 
-        for i, f in enumerate(files):
+        for i, f in tqdm(enumerate(files)):
 
             device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
@@ -44,10 +46,6 @@ def predeict_images(files, phases = 10, num_clusters = 10):
                 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
                 newmodel = CustomModel(model)
 
-                #test_dataset = Predict_Dataset([f])
-                #loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
-
-                # Define transformations to apply to the image
                 transform = transforms.Compose([
                     transforms.Resize((224, 224)),  # Resize the image to a fixed size
                     transforms.ToTensor()           # Convert the image to a PyTorch tensor
@@ -88,15 +86,61 @@ def predeict_images(files, phases = 10, num_clusters = 10):
     return kmeans.labels_
 
 
-    # groups = {}
-    # for file, cluster in zip(files,kmeans.labels_):
-    #     if cluster not in groups.keys():
-    #         groups[cluster] = []
-    #         groups[cluster].append(file)
-    #     else:
-    #         groups[cluster].append(file)
-    
+def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
+    print(files)
 
+    img_features = []
+
+    with torch.no_grad():
+
+        models = []
+        for i in range(phases):
+            model = torch.load("Models/Res_Class_{}.pt".format(i))
+            newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
+            newmodel = CustomModel(model)
+            models.append(newmodel)
+
+        for i, f in tqdm(enumerate(files)):
+
+            device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+
+            all_features = []
+            newmodel = CombinedModel(models)
+
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),  # Resize the image to a fixed size
+                transforms.ToTensor()  # Convert the image to a PyTorch tensor
+            ])
+
+            # Load the image
+            image = Image.open(f)
+            # Apply transformations
+            input_image = transform(image)
+            input_image = input_image.unsqueeze(0)
+
+            model.eval()
+
+            inputs = input_image.to(device)
+            outputs = newmodel(inputs)
+            outputs = outputs.cpu().numpy()
+            outputs = outputs[0]
+            img_features.append(outputs)
+
+    img_features = np.array(img_features)
+
+    pca = PCA(n_components=100, random_state=22)
+
+    pca.fit(img_features)
+
+    x = pca.transform(img_features)
+
+    fcm = FuzzyKMeans(k=num_clusters, m=1.5)
+    fcm.fit(x)
+    fuzzy_membership_matrix = fcm.fuzzy_labels_
+    fuzzy_membership_matrix = fuzzy_membership_matrix.T
+
+
+    return fuzzy_membership_matrix
 
 
             
@@ -111,8 +155,11 @@ root_dir = 'INSERT HERE'
 if __name__ == '__main__':
     files = glob(r'C:\Data\Phase\*.bmp')
     #files = glob(r'Training_images_2')
+    labels = predeict_images_fc(files,10,5, 2)
+    print(labels)
 
-    print(predeict_images(files,10,3))
+    with open('predicted_labels.pkl', 'wb') as f:
+        pickle.dump((labels), f)
 
 
     # for i in range(0, 10):

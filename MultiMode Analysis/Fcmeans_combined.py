@@ -8,14 +8,15 @@ from torch.utils.data import DataLoader, RandomSampler
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
 from pickle_Dataset import CustomDataset
-from Fcmeans_utils import CustomModel, CombinedModel
+from Fcmeans_utils import CustomModel, CombinedModel, custom_accuracy, match_rows
 import torch
 import torch.nn as nn
+
 
 models = []
 clusters = 5
 
-for i in range(0, 5):
+for i in range(0, clusters):
     model = torch.load("Models/Res_Class_{}.pt".format(i))
     newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
     newmodel = CustomModel(model)
@@ -80,20 +81,6 @@ true_lab = true_lab[:clusters]
 
 
 
-def match_rows(array1, array2):
-    num_rows1 = array1.shape[0]
-    num_rows2 = array2.shape[0]
-
-    # Calculate pairwise Euclidean distances between rows of both arrays
-    distances = np.zeros((num_rows1, num_rows2))
-    for i in range(num_rows1):
-        for j in range(num_rows2):
-            distances[i, j] = np.linalg.norm(array1[i] - array2[j])
-
-    # Match rows based on minimum distance
-    matched_indices = np.argmin(distances, axis=1)
-
-    return matched_indices
 
 
 
@@ -101,6 +88,7 @@ matched_indices = match_rows(true_lab, fuzzy_membership_matrix)
 fuzzy_membership_matrix = fuzzy_membership_matrix[matched_indices]
 
 print("Matched indices:", matched_indices)
+
 
 from sklearn.decomposition import PCA
 

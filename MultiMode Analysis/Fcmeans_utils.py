@@ -42,3 +42,43 @@ def view_cluster(cluster, groups, test_dataset):
         img = test_dataset[indices[i]][0].cpu().numpy()
         img = img[0]
         plt.imshow(img)
+
+
+import numpy as np
+
+
+def custom_accuracy(array1, array2):
+    diff = np.abs(np.where(array2 > 0.2, np.ceil(array2), 0) - array1)
+    diff = np.sum(diff)
+    print(1 - diff / 10000)
+    return 1 - diff / 10000
+
+
+def match_rows(array1, array2):
+
+    num_rows1 = array1.shape[0]
+    num_rows2 = array2.shape[0]
+
+    # Initialize array to keep track of matched rows in array2
+    matched_rows = np.zeros(num_rows2, dtype=bool)
+
+    # Initialize array to store matched indices
+    matched_indices = np.zeros(num_rows1, dtype=int)
+
+    # Calculate accuracy between rows of both arrays
+    for i in range(num_rows1):
+        max_accuracy = -1
+        max_index = -1
+        for j in range(num_rows2):
+            if not matched_rows[j]:
+                accuracy = custom_accuracy(array1, array2[matched_indices])
+                if accuracy > max_accuracy:
+                    max_accuracy = accuracy
+                    max_index = j
+        matched_indices[i] = max_index
+        matched_rows[max_index] = True
+
+    return matched_indices
+
+
+
