@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 from tqdm import tqdm
-from pickle_Dataset import CustomDataset
+from pickle_Dataset import CustomDataset, Predict_Dataset
 from Fcmeans_utils import CustomModel
 import torch
 import pickle
@@ -18,6 +18,9 @@ for i in range(0, 10):
     model = torch.load("Models/Res_Class_{}.pt".format(phase))
     newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
     newmodel = CustomModel(model)
+
+    #test_dataset = Predict_Dataset([f])
+    #loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     test_dataset = CustomDataset(root_dir='Training_images_2', new_size=(224, 224))
     test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
