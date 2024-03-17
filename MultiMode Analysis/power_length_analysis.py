@@ -2,10 +2,12 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import pickle as pkl
 from scipy.ndimage import center_of_mass
 import Meta_classifier
+import matplotlib
 
-files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*')
+files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
 
 def crop_save_image(image,size,name,root):
     cx, cy  = center_of_mass(image**5)
@@ -27,10 +29,10 @@ lengths = []
 int_times = []
 images = []
 for i, file in enumerate(files):
-    image = cv2.imread(file, 0)
-    split_file1 = file.split('\\')
+    #image = cv2.imread(file, 0)
+    split_file1 = file.split(r'\\')
     print(split_file1)
-    #plt.imshow(image)
+    #plt.imshow(image
     #plt.show()
     #crop_save_image(image, (180,180), 'pbecCrop' + split_file1[1][3:-4], r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222')
     #plt.imshow(image)
@@ -44,7 +46,7 @@ for i, file in enumerate(files):
 error_mask = np.array(lengths) < 952
 
 data = {
-    #'Images': np.array(images)[error_mask],
+    'Files': np.array(files)[error_mask],
     'Powers': np.array(powers)[error_mask],
     'Lengths': np.array(lengths)[error_mask],
     'Int_times': np.array(int_times)[error_mask]
@@ -54,6 +56,93 @@ thermal_mask = data['Int_times'] == max(data['Int_times'])
 
 print(thermal_mask)
 
+with open('predicted_labels.pkl', 'rb') as f:
+    cluster_labels, _ = pkl.load(f)
+
+
+spect_map = matplotlib.cm.get_cmap('brg')
+
+def plot_2dhist(data_x, data_y, x_range, y_range, color):
+    density, _, _ = np.histogram2d(data_x, 
+                                   data_y,
+                                   bins = 12, density=True, 
+                                   range=[x_range,y_range])
+    
+    density = density/np.max(density)
+
+    
+    cust_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('cmap'+str(i),[color,color],256)
+    
+    cust_cmap._init()
+    
+    alphas = np.linspace(0, 1, cust_cmap.N+3)
+    alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
+    cust_cmap._lut[:,-1] = alphas
+
+    # plt.imshow(density.T, 
+    #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+    #            aspect='auto', cmap=cust_cmap, origin='lower')
+
+    plt.imshow(density.T, interpolation='bicubic',
+               interpolation_stage='rgba', origin='lower', 
+               extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+               aspect='auto', cmap=cust_cmap)
+
+phases = []
+for i in np.unique(cluster_labels):
+    cluster_idx = np.argwhere(cluster_labels == i)
+
+    fig, axes = plt.subplots(nrows=2, ncols=3)
+
+
+    count = 0 
+    while count < 6:
+        row = count // 3
+        col = count % 3
+        idx = np.random.randint(len(cluster_idx))
+        image = cv2.imread(data['Files'][np.invert(thermal_mask)][cluster_idx[idx]][0], 0)
+        axes[row,col].imshow(image)
+        count += 1
+
+    plt.show()
+    in_phase = input("Enter Cluster Label: ")
+    phases.append(in_phase)
+    
+
+plot_2dhist(data['Lengths'][thermal_mask], data['Powers'][thermal_mask],
+            [min(data['Lengths']), max(data['Lengths'])],
+            [min(data['Powers']), max(data['Powers'])],
+            'grey')
+
+plt.scatter(data['Lengths'][thermal_mask],
+            data['Powers'][thermal_mask], color = 'grey', zorder = 100, label = 'Thermal Cloud')
+
+
+for i in np.unique(cluster_labels):
+    mask = cluster_labels  == i
+    color = spect_map((i+1)/(max(np.unique(cluster_labels)+1)))
+
+    plot_2dhist(data['Lengths'][np.invert(thermal_mask)][mask],
+                data['Powers'][np.invert(thermal_mask)][mask],
+                [min(data['Lengths']), max(data['Lengths'])],
+                [min(data['Powers']), max(data['Powers'])],
+                color
+                )
+    
+    plt.scatter(data['Lengths'][np.invert(thermal_mask)][mask],
+                data['Powers'][np.invert(thermal_mask)][mask], color = color, zorder = 100, label = phases[i])
+
+
+
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+# plt.grid(c='black')
+
+plt.ylabel('Pump Power (W)')
+plt.xlabel('Cavity Length (nm)')
+
+plt.tight_layout()
+
+plt.show()
 plt.scatter(data['Lengths'][thermal_mask], data['Powers'][thermal_mask], color = 'grey')
-plt.scatter(data['Lengths'][np.invert(thermal_mask)], data['Powers'][np.invert(thermal_mask)])
+plt.scatter(data['Lengths'][np.invert(thermal_mask)], data['Powers'][np.invert(thermal_mask)], c =cluster_labels,cmap='tab10')
 plt.show()

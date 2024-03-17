@@ -12,8 +12,8 @@ from glob import glob
 from torchvision import transforms
 from PIL import Image
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
-
-
+import cv2
+from scipy.ndimage import zoom
 
 
 # Load centroids and membership values from file
@@ -26,8 +26,41 @@ def predict(data, cluster_centres, m, classifer_model):
         return D
 
 
+def Kmeans_no_CNN(files, num_clusters, powers, lengths):
 
-def predeict_images_k(files, phases = 10, num_clusters = 10):
+    img_features = []
+    for i, f in enumerate(files):
+        image = cv2.imread(f, 0)
+        
+        image = zoom(image, (224/image.shape[0], 244/image.shape[1]))
+
+        image = image.flatten()
+
+        
+        # if powers[i] is not None:
+        #     image = np.concatenate((image, [powers[i]]))
+        
+        # if lengths[i] is not None:
+        #     image = np.concatenate((image, [lengths[i]]))
+        
+        img_features.append(image)
+
+    img_features = np.array(img_features)
+
+    pca = PCA(n_components=100, random_state=22)
+
+    pca.fit(img_features)
+
+    x = pca.transform(img_features)
+
+    kmeans = KMeans(n_clusters=num_clusters, random_state=22)
+    kmeans.fit(x)
+
+    return kmeans.labels_, None
+
+
+
+def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, lengths = None):
 
     print(files)
 
@@ -42,7 +75,7 @@ def predeict_images_k(files, phases = 10, num_clusters = 10):
             all_features = []
 
             for i in range(phases):
-                model = torch.load("Models/Res_Class_{}.pt".format(i))
+                model = torch.load("MultiMode Analysis/Models/Res_Class_{}.pt".format(i))
                 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
                 newmodel = CustomModel(model)
 
@@ -64,19 +97,27 @@ def predeict_images_k(files, phases = 10, num_clusters = 10):
                 outputs = newmodel(inputs)
                 outputs = outputs.cpu().numpy()
                 outputs = outputs[0]
+
+                if powers[i] is not None:
+                    outputs = np.concatenate((outputs, [powers[i]]))
+                
+                if lengths[i] is not None:
+                    outputs = np.concatenate((outputs, [lengths[i]]))
+
                 all_features.append(outputs)
+
 
 
             img_features.append(np.array(all_features).flatten())
 
-    img_features = np.array(img_features)
-    
+    x = np.array(img_features)
+  
 
-    pca = PCA(n_components=100, random_state=22)
+    # pca = PCA(n_components=100, random_state=22)
 
-    pca.fit(img_features)
+    # pca.fit(img_features)
 
-    x = pca.transform(img_features)
+    # x = pca.transform(img_features)
 
 
     kmeans = KMeans(n_clusters=num_clusters, random_state=22)
@@ -95,7 +136,7 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
 
         models = []
         for i in range(phases):
-            model = torch.load("Models/Res_Class_{}.pt".format(i))
+            model = torch.load("MultiMode Analysis/Models/Res_Class_{}.pt".format(i))
             newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
             newmodel = CustomModel(model)
             models.append(newmodel)
@@ -155,16 +196,26 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
 root_dir = 'INSERT HERE'
 
 if __name__ == '__main__':
-    files = glob(r'C:\Data\Phase\*.bmp')
+    files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
     int_times = []
+    powers = []
+    lengths = []
     for file in files:
         split_file = file.split('_')
         int_times.append(float(split_file[3]))
+        powers.append(float(split_file[4]))
+        lengths.append(float(split_file[5]))
+
     int_times =  np.array(int_times)
     files = np.array(files)
-    files = files[int_times < np.max(int_times)]
-
-    labels = predeict_images_k(files,10,4)
+    powers = np.array(powers)
+    lengths = np.array(lengths)
+    mask = (int_times < np.max(int_times)) & (lengths < 952)
+    files = files[mask]
+    lengths = lengths[mask]
+    powers = powers[mask]
+    labels = Kmeans_no_CNN(files, 2, powers, lengths)
+    #labels = predeict_images_k(files,10,2, powers, lengths)
     print(labels)
 
     with open('predicted_labels.pkl', 'wb') as f:

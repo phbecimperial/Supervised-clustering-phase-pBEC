@@ -3,4 +3,6 @@
 **/data
 **/__pycache__
 **/Training_images_2
+**.xml
+**.iml
 
