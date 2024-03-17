@@ -21,7 +21,7 @@ class pickle_Dataset(data.Dataset):
 
         path = self.dir_list[index]
 
-        with lzma.open(path, 'rb') as f:
+        with open(path, 'rb') as f:
             im, key = pickle.load(f)
             im = np.asarray(im, np.float32)
             im = self.transforms(im)

@@ -7,6 +7,7 @@ from tqdm import tqdm as tqdm
 from pickle_Dataset import pickle_Dataset
 import gc
 from torch.cuda.amp import autocast, GradScaler
+#import generate_training
 
 
 
@@ -25,6 +26,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
         total = 0
         total_loss = 0
         for inputs, keys in train_loader:
+
             inputs, keys = inputs.to(device), torch.select(keys, 1, label).to(device)
             with autocast():
                 #inputs = inputs.to(memory_format=torch.channels_last)
@@ -80,15 +82,15 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
                 steps += 1
                 del images, keys, outputs
 
-            history['val_accuracy'].append(correct / total)
-            history['val_loss'].append(loss.cpu().detach().numpy() / steps)
 
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
-            if (correct/total) > max(history['val_accuracy']):
-                torch.save(model, r'Models\Res_Class_' + str(i) + '.pt', pkl)
-                with open(r'Models\Res_Class_' + str(label) + 'history', 'wb') as f:
-                    pkl.dump(history, f)
-                del model
+            if (correct/total) > max(history['val_accuracy'], default=0):
+                torch.save(model, r'Models\Scuffed_Res_Class_' + str(label) + '.pt', pkl)
+                # del model
+
+
+            history['val_accuracy'].append(correct / total)
+            history['val_loss'].append(loss.cpu().detach().numpy() / steps)
 
 
         
@@ -113,16 +115,16 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    classes = 10
+    classes = 6
     epochs = 30
     criterion = torch.nn.BCEWithLogitsLoss()
     learning_rate = 0.01
     val_split = 0.2
-    batch_size = 64
+    batch_size = 128
     best_accuracy = 0.0
 
 
-    transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224)), v2.Normalize((0.5,), (
+    transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224), antialias=True), v2.Normalize((0.5,), (
         0.5,))])
 
     train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform)
@@ -155,6 +157,10 @@ if __name__ == "__main__":
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.01, momentum = 0.9)
         model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
 
+        with open(r'Models\Scuffed_Res_Class_' + str(i) + 'history', 'wb') as f:
+            pkl.dump(history, f)
+
+        del model
 
 
 
