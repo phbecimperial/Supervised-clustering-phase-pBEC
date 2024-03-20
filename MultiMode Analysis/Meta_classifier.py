@@ -196,7 +196,9 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
 root_dir = 'INSERT HERE'
 
 if __name__ == '__main__':
-    files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
+    #files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
+    with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
+        files = pickle.load(f)
     int_times = []
     powers = []
     lengths = []
@@ -214,11 +216,11 @@ if __name__ == '__main__':
     files = files[mask]
     lengths = lengths[mask]
     powers = powers[mask]
-    labels = Kmeans_no_CNN(files, 2, powers, lengths)
-    #labels = predeict_images_k(files,10,2, powers, lengths)
+    #labels = Kmeans_no_CNN(files, 2, powers, lengths)
+    labels = predeict_images_k(files,10,4, powers, lengths)
     print(labels)
 
-    with open('predicted_labels.pkl', 'wb') as f:
+    with open('Mar_16_predicted_labels.pkl', 'wb') as f:
         pickle.dump((labels), f)
 
 
