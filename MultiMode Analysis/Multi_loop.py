@@ -85,7 +85,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
             if (correct/total) > max(history['val_accuracy'], default=0):
-                torch.save(model, r'Models\Scuffed_Res_Class_' + str(label) + '.pt', pkl)
+                torch.save(model, r'MultiMode Analysis\Models\Mar17_Res_Class_' + str(label) + '.pt', pkl)
                 # del model
 
 
@@ -115,8 +115,8 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    classes = 6
-    epochs = 30
+    classes = 7
+    epochs = 35
     criterion = torch.nn.BCEWithLogitsLoss()
     learning_rate = 0.01
     val_split = 0.2
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224), antialias=True), v2.Normalize((0.5,), (
         0.5,))])
 
-    train_dataset = pickle_Dataset(root = r'Training_Images', transforms = transform)
+    train_dataset = pickle_Dataset(root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images', transforms = transform)
 
 
     numTrainSamp = round(len(train_dataset) * (1 - val_split))
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.01, momentum = 0.9)
         model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
 
-        with open(r'Models\Scuffed_Res_Class_' + str(i) + 'history', 'wb') as f:
+        with open(r'MultiMode Analysis\Models\Mar17_Res_Class_' + str(i) + 'history', 'wb') as f:
             pkl.dump(history, f)
 
         del model

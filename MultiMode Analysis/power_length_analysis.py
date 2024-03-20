@@ -9,6 +9,20 @@ import matplotlib
 
 files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
 
+# t_stamps = ['20240316_122615', '20240316_174943']
+
+# Mar16_files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\20240316\*.png')
+
+# files = []
+# for i in Mar16_files:
+
+#     if int(i.split('_')[2]) > int(t_stamps[0].split('_')[1]):
+#         files.append(i)
+
+# with open(r'MultiMode Analysis\relavent_files.pkl', 'wb') as f:
+#     pkl.dump(files, f)
+
+
 def crop_save_image(image,size,name,root):
     cx, cy  = center_of_mass(image**5)
     
@@ -52,12 +66,12 @@ data = {
     'Int_times': np.array(int_times)[error_mask]
 }
 
-thermal_mask = data['Int_times'] == max(data['Int_times'])
+thermal_mask = data['Int_times'] > 1000
 
 print(thermal_mask)
 
-with open('predicted_labels.pkl', 'rb') as f:
-    cluster_labels, _ = pkl.load(f)
+with open('MultiMode Analysis\predicted_labels', 'rb') as f:
+    cluster_labels = pkl.load(f)
 
 
 spect_map = matplotlib.cm.get_cmap('brg')
@@ -136,7 +150,12 @@ for i in np.unique(cluster_labels):
 
 plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 # plt.grid(c='black')
-
+ax = plt.gca()
+for i in ax.spines:
+    ax.spines[i].set_color('w')
+ax.tick_params(color = 'w')
+ax.yaxis.label.set_color('w')
+ax.xaxis.label.set_color('w')
 plt.ylabel('Pump Power (W)')
 plt.xlabel('Cavity Length (nm)')
 
