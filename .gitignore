@@ -8,3 +8,5 @@
 **.pkl
 **.pt
 **/Models/**
+**.npy
+**fcm**
