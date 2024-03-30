@@ -47,6 +47,8 @@ def Kmeans_no_CNN(files, num_clusters, powers, lengths):
 
     img_features = np.array(img_features)
 
+    
+
     pca = PCA(n_components=100, random_state=22)
 
     pca.fit(img_features)
@@ -59,8 +61,56 @@ def Kmeans_no_CNN(files, num_clusters, powers, lengths):
     return kmeans.labels_, None
 
 
+def predict_full_output(files, phases):
 
-def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, lengths = None):
+    print(files)
+
+    img_features = []
+    preds = []
+    with torch.no_grad():
+
+        for i, f in tqdm(enumerate(files)):
+
+            device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+
+            all_features = []
+            ind_preds = []
+            for i in range(phases):
+                model = torch.load("MultiMode Analysis/Models/Mar20_Res_Class_{}.pt".format(i))
+
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224)),  # Resize the image to a fixed size
+                    transforms.ToTensor()           # Convert the image to a PyTorch tensor
+                ])
+
+                # Load the image
+                #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
+                image = Image.open(f)
+                # Apply transformations
+                input_image = transform(image)
+                input_image = input_image.unsqueeze(0)
+
+                model.eval()
+
+                inputs = input_image.to(device)
+                outputs = model(inputs)
+                #outputs = outputs.cpu().numpy()
+                outputs = torch.softmax(outputs,1)
+                outputs = outputs[0].cpu().numpy()
+
+                all_features.append(outputs)
+                ind_preds.append(np.argmin(outputs))
+
+
+
+            img_features.append(np.array(all_features))
+            preds.append(ind_preds)
+    x = np.array(img_features)
+    preds = np.array(preds)
+    return x, preds
+
+
+def predeict_images_CNN(files, phases = 10, powers = None, lengths = None):
 
     print(files)
 
@@ -75,7 +125,7 @@ def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, leng
             all_features = []
 
             for i in range(phases):
-                model = torch.load("MultiMode Analysis/Models/Res_Class_{}.pt".format(i))
+                model = torch.load("MultiMode Analysis/Models/Mar20_Res_Class_{}.pt".format(i))
                 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
                 newmodel = CustomModel(model)
 
@@ -96,12 +146,14 @@ def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, leng
                 inputs = input_image.to(device)
                 outputs = newmodel(inputs)
                 outputs = outputs.cpu().numpy()
+
                 outputs = outputs[0]
 
-                if powers[i] is not None:
+                if (powers is not None) and (lengths is not None):
+
+
                     outputs = np.concatenate((outputs, [powers[i]]))
                 
-                if lengths[i] is not None:
                     outputs = np.concatenate((outputs, [lengths[i]]))
 
                 all_features.append(outputs)
@@ -111,6 +163,8 @@ def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, leng
             img_features.append(np.array(all_features).flatten())
 
     x = np.array(img_features)
+
+    return x 
   
 
     # pca = PCA(n_components=100, random_state=22)
@@ -120,8 +174,10 @@ def predeict_images_k(files, phases = 10, num_clusters = 10, powers = None, leng
     # x = pca.transform(img_features)
 
 
+def quick_kmeans(features, num_clusters):
+
     kmeans = KMeans(n_clusters=num_clusters, random_state=22)
-    kmeans.fit(x)
+    kmeans.fit(features)
 
 
     return kmeans.labels_, None
@@ -197,7 +253,7 @@ root_dir = 'INSERT HERE'
 
 if __name__ == '__main__':
     #files = glob(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\MultiMode Analysis\20240222\Cropped images\*.bmp')
-    with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
+    with open(r'MultiMode Analysis\stim_files.pkl', 'rb') as f:
         files = pickle.load(f)
     int_times = []
     powers = []
@@ -212,16 +268,27 @@ if __name__ == '__main__':
     files = np.array(files)
     powers = np.array(powers)
     lengths = np.array(lengths)
-    mask = (int_times < np.max(int_times)) & (lengths < 952)
-    files = files[mask]
-    lengths = lengths[mask]
-    powers = powers[mask]
-    #labels = Kmeans_no_CNN(files, 2, powers, lengths)
-    labels = predeict_images_k(files,10,4, powers, lengths)
-    print(labels)
 
-    with open('Mar_16_predicted_labels.pkl', 'wb') as f:
-        pickle.dump((labels), f)
+
+    #features = predeict_images_CNN(files,17)
+
+    out, preds = predict_full_output(files, 17)
+
+    with open('Mar_20_21_CNN_out.pkl', 'wb') as f:
+        pickle.dump((out, preds), f)
+
+    #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
+
+    
+
+    for i in range(5,15):
+        
+        labels, _ = quick_kmeans(features, i)
+
+        #labels, _ = Kmeans_no_CNN(files,9,powers,lengths)
+
+        with open(f'Mar_20_21_NoPow_predicted_labels_{i}.pkl', 'wb') as f:
+            pickle.dump((labels), f)
 
 
     # for i in range(0, 10):
@@ -269,3 +336,4 @@ if __name__ == '__main__':
     #     print("Predicted clusters for new data points:")
     #     print(predicted_clusters)
 
+   

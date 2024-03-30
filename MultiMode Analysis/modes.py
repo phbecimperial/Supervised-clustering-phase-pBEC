@@ -42,7 +42,7 @@ def mode_nums():
 
 def mode_func(multi_split = 0.5, modelist = None):
 
-    n = randint(1,5)
+    n = randint(1,10)
     ms = []
     for i in range(n):
         if multi_split > random() and i == 1:

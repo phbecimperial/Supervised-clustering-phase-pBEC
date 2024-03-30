@@ -85,7 +85,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
             if (correct/total) > max(history['val_accuracy'], default=0):
-                torch.save(model, r'MultiMode Analysis\Models\Mar17_Res_Class_' + str(label) + '.pt', pkl)
+                torch.save(model, r'MultiMode Analysis\Models\Mar20_Res_Class_' + str(label) + '.pt', pkl)
                 # del model
 
 
@@ -115,8 +115,9 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    classes = 7
-    epochs = 35
+    print(device)
+    classes = len(generate_training.modelist)
+    epochs = 40
     criterion = torch.nn.BCEWithLogitsLoss()
     learning_rate = 0.01
     val_split = 0.2
@@ -157,7 +158,7 @@ if __name__ == "__main__":
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.01, momentum = 0.9)
         model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
 
-        with open(r'MultiMode Analysis\Models\Mar17_Res_Class_' + str(i) + 'history', 'wb') as f:
+        with open(r'MultiMode Analysis\Models\Mar20_Res_Class_' + str(i) + 'history', 'wb') as f:
             pkl.dump(history, f)
 
         del model

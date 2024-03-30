@@ -6,7 +6,6 @@ import random
 import lzma
 import os
 import time
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle as pkl
@@ -37,8 +36,9 @@ def noise_shift(im, scale):
 
 def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5], 
                   wavelen=950*nm, spec_num = [0, 20], mult_las_split = 0.5, spec_rad = [1*um, 7*um], 
-                  save = True, LG = True):
+                  save = True):
     images = []
+
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
@@ -48,12 +48,13 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # outputs = []
         amps = 0.05 + np.random.random(len(comb))*0.95
         amps = amps/max(amps)
+        shifts = np.random.random(2)*dim/2 - dim/4
+
+        w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
+
         for j, (mode, amp) in enumerate(zip(comb, amps)):
 
-            if mode == [1,0]:
-                addbeam = GaussBeam(beam, w0=w0, n=mode[0], m=mode[1], LG=False)
-            else:
-                addbeam = GaussBeam(beam, w0=w0, n=mode[0], m=mode[1], LG=LG)
+            addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
             addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
             addbeam = Normal(addbeam)
             addbeam = IntAttenuator(addbeam, amp)
@@ -61,6 +62,8 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             beam = BeamMix(beam,addbeam)
         beam = Normal(beam)
 
+        beam.field = np.roll(np.array(beam.field), int(shifts[0]), 0)
+        beam.field = np.roll(np.array(beam.field), int(shifts[1]), 1)
 
         f_angle = np.random.random() * 2 * np.pi
         f_size =  min(fringe_size) + np.random.random()*np.diff(fringe_size)[0]
@@ -81,19 +84,17 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         for j in range(np.random.randint(min(spec_num), max(spec_num))):
             beam = CircScreen(beam, R = min(spec_rad) + np.random.random()*np.diff(spec_rad)[0],
-                                x_shift=np.random.random()* 4 * w0 - 2 * w0,
-                                y_shift=np.random.random()* 4 * w0 - 2* w0)
+                                x_shift=np.random.random()* 4 * w - 2 * w,
+                                y_shift=np.random.random()* 4 * w - 2* w)
 
         beam = Forvard(beam, z=0.01*cm)
 
-        aperture_radius = w0 + np.random.random()*size
+        aperture_radius = w + np.random.random()*size
         aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
-        beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
+        #beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
-        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,25))
-        im = shift(im, (np.random.randint(-75, 75), np.random.randint(-75, 75)))
-
+        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,10))
 
         im_avg = np.mean(im)
         im += im * np.random.random(im.shape) + np.random.random()*np.random.normal(im_avg/2, np.std(im), im.shape)
@@ -110,7 +111,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with open(r'Training_images\training_image' + '@' +
+            with open(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\training_image' + '@' +
                       str(time.time()) + '@' + ''.join(
                 ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
                                ) + '.pkl', 'wb') as f:
@@ -120,12 +121,13 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             images.append((im,outputs))
     return images
 
-# save = True
-#
-# if save:
-#     for f in glob(r'Training_images\*'):
-#         os.remove(f)
-#
+save = True
+t = time.localtime()
+
+if save:
+    for f in glob(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\*'):
+        os.remove(f)
+
 # modelist = [
 #     [0,0], [0,1], [0,2], [0,3], [1,1], [1,0]
 # ]
@@ -140,17 +142,17 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 import concurrent.futures
 
 def generate_data_worker(args):
-    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG = args
+    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save = args
 
-    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG)
+    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save)
 
 def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
-                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, LG=True):
+                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True):
     save = True
     if save:
-        for f in glob(r'Training_images\*'):
+        for f in glob(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\*'):
             os.remove(f)
-    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, LG) for i in range(num_threads)]
+    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save) for i in range(num_threads)]
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = list(executor.map(generate_data_worker, args_list))
     return results
@@ -174,8 +176,12 @@ save = True
 #     plt.title(str(k))
 #     plt.show()
 modelist = [
-    [0,0], [0,1], [0,2], [0,3], [1,1], [1,0]
+    ([0,0], False), ([0,1], False), ([0,2], False), ([0,3], False), ([0,4], False),  ([0,5], False),  ([0,6], False), ([0,7], False),  ([0,8], False),  ([0,9], False), 
+    ([1,1], False), ([1,2], False), ([1,3], False), ([1,4], False), ([1,5], False), ([1,6], False), ([1,7], False)
 ]
 
-num_threads = 20
-ims = generate_data_multithreaded(num_threads, 50000 // num_threads, 2000*um, 300, modelist, 100*um, fringe_size=[0.5, 1.5], save=save, LG=True, mult_las_split=0)
+#gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
+
+#threads
+num_threads = 1
+ims = generate_data_multithreaded(num_threads, 20 // num_threads, 2000*um, 300, modelist, [50*um, 300*um], fringe_size=[0.5, 1.5], save=save, mult_las_split=0)

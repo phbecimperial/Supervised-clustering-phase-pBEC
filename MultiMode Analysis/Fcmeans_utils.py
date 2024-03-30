@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+
 class CustomModel(torch.nn.Module):
     def __init__(self, original_model):
         super(CustomModel, self).__init__()
