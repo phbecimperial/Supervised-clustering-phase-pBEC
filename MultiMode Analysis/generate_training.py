@@ -183,5 +183,5 @@ modelist = [
 #gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
 
 #threads
-num_threads = 1
-ims = generate_data_multithreaded(num_threads, 20 // num_threads, 2000*um, 300, modelist, [50*um, 300*um], fringe_size=[0.5, 1.5], save=save, mult_las_split=0)
+num_threads = 20
+ims = generate_data_multithreaded(num_threads, 80000 // num_threads, 2000*um, 300, modelist, [50*um, 300*um], fringe_size=[0.5, 1.5], save=save, mult_las_split=0)
