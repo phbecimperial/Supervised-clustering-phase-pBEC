@@ -48,7 +48,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # outputs = []
         amps = 0.05 + np.random.random(len(comb))*0.95
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/2 - dim/4
+        shifts = np.random.random(2)*dim/4 - dim/8
 
         w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
 
@@ -111,7 +111,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         if save:
             # Using mgzip to compress pickles
-            with open(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\training_image' + '@' +
+            with open(r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Training_Images\training_image' + '@' +
                       str(time.time()) + '@' + ''.join(
                 ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
                                ) + '.pkl', 'wb') as f:
@@ -124,9 +124,6 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 save = True
 t = time.localtime()
 
-if save:
-    for f in glob(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\*'):
-        os.remove(f)
 
 # modelist = [
 #     [0,0], [0,1], [0,2], [0,3], [1,1], [1,0]
@@ -150,7 +147,7 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
                   wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True):
     save = True
     if save:
-        for f in glob(r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images\*'):
+        for f in glob(r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Training_Images\*'):
             os.remove(f)
     args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save) for i in range(num_threads)]
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -183,5 +180,5 @@ modelist = [
 #gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
 
 #threads
-num_threads = 20
+num_threads = 13
 ims = generate_data_multithreaded(num_threads, 80000 // num_threads, 2000*um, 300, modelist, [50*um, 300*um], fringe_size=[0.5, 1.5], save=save, mult_las_split=0)

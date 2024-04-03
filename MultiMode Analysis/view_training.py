@@ -2,9 +2,10 @@ import cv2
 import pickle as pkl
 from os.path import sep
 import matplotlib.pyplot as plt
+
 from glob import glob as glob
 
-img_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
+img_dir = r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Training_Images'
 
 im_files = glob(img_dir + sep + '*.pkl')
 

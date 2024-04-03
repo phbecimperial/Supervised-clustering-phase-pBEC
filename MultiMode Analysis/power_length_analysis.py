@@ -33,6 +33,31 @@ def crop_save_image(files,size,root):
     ##return image_crop
 
 
+def bec_crop_centre(bec_file: str, files: list[str], size: int, root: str):
+    """
+    New image cropping fn, parse in file of bec image and will take as center for all other images.
+    V simple don't know why I didn't think of this before
+    """
+    bec_im = cv2.imread(bec_file)
+
+    cx, cy = center_of_mass(bec_im**3)
+
+    for f in glob(root + r'\*'):
+        os.remove(f)
+
+    for f in files:
+        image = cv2.imread(f, 0)
+        name = f.split(sep)[-1][:-4]
+        
+        image_crop = image[int(int(cx) - size[0]/2):int(int(cx) + size[0]/2),
+            int(int(cy) - size[1]/2):int(int(cy) + size[1]/2)]
+        #print(int(int(cx) - size[0]/2),int(int(cx) + size[0]/2))
+        #print(int(int(cy) - size[0]/2),int(int(cy) + size[0]/2))
+        #print(cx,cy)
+
+        flag =  cv2.imwrite(root + r"\\" + 'Crop' + name + '.png', image_crop)
+        #print(root + r'\\' + name + '.png')
+
 
 
 def fit_pca(lengths, pcas):

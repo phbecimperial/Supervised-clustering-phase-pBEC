@@ -76,7 +76,7 @@ def predict_full_output(files, phases):
             all_features = []
             ind_preds = []
             for i in range(phases):
-                model = torch.load("MultiMode Analysis/Models/Mar20_Res_Class_{}.pt".format(i))
+                model = torch.load(r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Models/Mar20_Res_Class_{}.pt".format(i))
 
                 transform = transforms.Compose([
                     transforms.Resize((224, 224)),  # Resize the image to a fixed size
@@ -270,11 +270,14 @@ if __name__ == '__main__':
     lengths = np.array(lengths)
 
 
-    #features = predeict_images_CNN(files,17)
+    features = predeict_images_CNN(files,17)
+
+    with open('Apr_2_features.pkl', 'wb') as f:
+        pickle.dump(features, f)
 
     out, preds = predict_full_output(files, 17)
 
-    with open('Mar_20_21_CNN_out.pkl', 'wb') as f:
+    with open('Apr_2_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
@@ -287,7 +290,7 @@ if __name__ == '__main__':
 
         #labels, _ = Kmeans_no_CNN(files,9,powers,lengths)
 
-        with open(f'Mar_20_21_NoPow_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_2_NoPow_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels), f)
 
 
