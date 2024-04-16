@@ -2,6 +2,7 @@ from glob import glob
 import numpy as np
 import pickle as pkl
 import cv2
+from tqdm import tqdm
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -25,7 +26,7 @@ def open_img_files(t_stamps: list[str],  root_dir: str):
 
 def select_stimulated(files, cuttoff: float):
     truth_list = []
-    for i in files:
+    for i in tqdm(files):
         img = cv2.imread(i,0)
 
         truth_list.append(np.max(img) > cuttoff)
@@ -44,8 +45,8 @@ def select_line(files, point: list[float], height: float):
     for i in files:
         split_f = i.split(r'\\')
         split_n = split_f[-1].split('_')
-        power = float(split_n[4])
-        length = float(split_n[5])
+        power = float(split_n[-4])
+        length = float(split_n[-3])
         
 
         l_point = line(length,point[0][0], point[0][1], m) 
@@ -101,10 +102,13 @@ def plot_line(ax, line, line_params:list[float], height: float, points: list[lis
 
 if __name__ == '__main__':
     t_stamps = ['20240320_213246', '20240321_141756']
-    root_dir = r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link'
-    fs = open_img_files(t_stamps, root_dir)
+    #root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files"
+    
+    root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240321"
+    # fs = open_img_files(t_stamps, root_dir)
+    
 
-    #fs = np.array(glob(root_dir + r'\*.png'))
+    fs = np.array(glob(root_dir + r'\*.png'))
 
     rs, _ = select_stimulated(fs, 50)
     print(rs)

@@ -31,6 +31,8 @@ def laser_func():
         ms.append(newmode)
     return ms
 
+
+
 def mode_nums():
     nm1 = randint(0,3)
 
@@ -40,9 +42,16 @@ def mode_nums():
 
     return [nm1, nm2]
 
-def mode_func(multi_split = 0.5, modelist = None):
+def mode_func(multi_split = 0.5, modelist = None, max_modes = 10, single_mode = 0.05):
 
-    n = randint(1,10)
+    rand = random()
+    if rand < single_mode:
+        n = 1
+    elif rand < single_mode*4:
+        n = 2
+    else:
+        n = randint(3,max_modes)
+
     ms = []
     for i in range(n):
         if multi_split > random() and i == 1:

@@ -5,6 +5,7 @@ Generates Training data
 import random
 import lzma
 import os
+from os.path import sep
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,19 +37,19 @@ def noise_shift(im, scale):
 
 def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5], 
                   wavelen=950*nm, spec_num = [0, 20], mult_las_split = 0.5, spec_rad = [1*um, 7*um], 
-                  save = True):
+                  save = True, save_dir = None):
     images = []
 
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        comb, outputs = mode_func(mult_las_split, modes)
+        comb, outputs = mode_func(mult_las_split, modes, len(modes))
         # comb = modes[np.random.randint(0, len(modes)-1)]
         # comb = [1]
         # outputs = []
         amps = 0.05 + np.random.random(len(comb))*0.95
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/4 - dim/8
+        shifts = np.random.random(2)*dim/8 - dim/16
 
         w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
 
@@ -74,20 +75,20 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         intbeam = BeamMix(beam1,beam2)
         intbeam = Fresnel(intbeam, z=1*cm)
-        # beam = RandomIntensity(beam, np.random.randint(0, 1000), 
+        # beam = RandomIntensity(beam, np.random.randint(0, 1000),
         #                        noise=noise*100*np.log(np.max(Intensity(beam))))
         warp_interference = noise_shift(Intensity(intbeam), (dim/500)**2*np.random.randint(5,20))
         beam = MultIntensity(beam, warp_interference)
 
-        beam = Normal(beam)
-        beam = Fresnel(beam, z=0.2*cm)
+        # beam = Normal(beam)
+        # beam = Fresnel(beam, z=0.2*cm)
 
         for j in range(np.random.randint(min(spec_num), max(spec_num))):
             beam = CircScreen(beam, R = min(spec_rad) + np.random.random()*np.diff(spec_rad)[0],
                                 x_shift=np.random.random()* 4 * w - 2 * w,
                                 y_shift=np.random.random()* 4 * w - 2* w)
 
-        beam = Forvard(beam, z=0.01*cm)
+        beam = Forvard(beam, z=0.03*cm)
 
         aperture_radius = w + np.random.random()*size
         aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
@@ -96,13 +97,13 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,10))
 
-        im_avg = np.mean(im)
-        im += im * np.random.random(im.shape) + np.random.random()*np.random.normal(im_avg/2, np.std(im), im.shape)
+        im_max = np.max(im)
+        im += im * np.random.random(im.shape)/10# + np.random.random()*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * (im + np.min(im)) / (np.max(im) + np.min(im))
 
         im_mid = int(im.shape[0]/2)
-        im_crop = int(im.shape[0]/2.5)
+        im_crop = int(im.shape[0]/4)
         crop_im = im[im_mid - im_crop:im_mid + im_crop, im_mid - im_crop:im_mid + im_crop]
 
         im = zoom(crop_im, 224/im.shape[0])
@@ -110,8 +111,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
 
         if save:
-            # Using mgzip to compress pickles
-            with open(r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Training_Images\training_image' + '@' +
+            with open(save_dir + r'\training_image' + '@' +
                       str(time.time()) + '@' + ''.join(
                 ['1' if torch.all(i.eq(torch.tensor([1.,0.]))) else '0' for i in outputs]
                                ) + '.pkl', 'wb') as f:
@@ -121,8 +121,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             images.append((im,outputs))
     return images
 
-save = True
-t = time.localtime()
+
 
 
 # modelist = [
@@ -139,22 +138,22 @@ t = time.localtime()
 import concurrent.futures
 
 def generate_data_worker(args):
-    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save = args
+    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir = args
 
-    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save)
+    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir)
 
 def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
-                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True):
+                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, save_dir = None):
     save = True
     if save:
-        for f in glob(r'C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Training_Images\*'):
+        for f in glob(save_dir + r'\*'):
             os.remove(f)
-    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save) for i in range(num_threads)]
+    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir) for i in range(num_threads)]
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = list(executor.map(generate_data_worker, args_list))
     return results
 
-save = True
+
 
 # if save:
 #     for f in glob(r'Training_images\*'):
@@ -172,13 +171,27 @@ save = True
 #     plt.imshow(img)
 #     plt.title(str(k))
 #     plt.show()
+# modelist = [
+#     ([0,0], False), ([0,1], False), ([0,2], False), ([0,3], False), ([0,4], False),  ([0,5], False),  ([0,6], False), ([0,7], False),  ([0,8], False),  ([0,9], False), 
+#     ([1,1], False), ([1,2], False), ([1,3], False), ([1,4], False)
+# 
+
 modelist = [
-    ([0,0], False), ([0,1], False), ([0,2], False), ([0,3], False), ([0,4], False),  ([0,5], False),  ([0,6], False), ([0,7], False),  ([0,8], False),  ([0,9], False), 
-    ([1,1], False), ([1,2], False), ([1,3], False), ([1,4], False), ([1,5], False), ([1,6], False), ([1,7], False)
+    ([0,0], False), ([0,1], False), ([0,4], False), ([0,6], False), ([0,8], False), ([0,9], False), ([0,10], False),  
+    ([1,1], False),
 ]
+
+# modelist = [
+#     ([0,9], False), ([0,9], False) 
+# ]
 
 #gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
 
-#threads
-num_threads = 13
-ims = generate_data_multithreaded(num_threads, 80000 // num_threads, 2000*um, 300, modelist, [50*um, 300*um], fringe_size=[0.5, 1.5], save=save, mult_las_split=0)
+#thread
+
+if __name__ == '__main__':
+    t = time.localtime()
+    save = True
+    save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
+    num_threads = 10
+    ims = generate_data_multithreaded(num_threads, 300 // num_threads, 2500*um, 500, modelist, [100*um, 200*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)

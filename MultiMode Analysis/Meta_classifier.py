@@ -1,8 +1,10 @@
 import pickle
 import numpy as np
 import torch
+from os.path import sep
 from Fcmeans_utils import CustomModel, CombinedModel
 from torch.utils.data import DataLoader
+from torchvision.transforms import v2
 from pickle_Dataset import CustomDataset, Predict_Dataset
 from tqdm import tqdm
 from sklearn.metrics.pairwise import euclidean_distances
@@ -61,9 +63,13 @@ def Kmeans_no_CNN(files, num_clusters, powers, lengths):
     return kmeans.labels_, None
 
 
-def predict_full_output(files, phases):
+def predict_full_output(files, phases, root):
 
     print(files)
+    mod_files = glob(root + r'*.pt')
+    sort_args = np.argsort([i.split(sep)[-1].split('_')[-1][:-3] for i in mod_files])
+    mod_files = np.array(mod_files)[sort_args]
+
 
     img_features = []
     preds = []
@@ -76,12 +82,12 @@ def predict_full_output(files, phases):
             all_features = []
             ind_preds = []
             for i in range(phases):
-                model = torch.load(r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link\Models/Mar20_Res_Class_{}.pt".format(i))
 
-                transform = transforms.Compose([
-                    transforms.Resize((224, 224)),  # Resize the image to a fixed size
-                    transforms.ToTensor()           # Convert the image to a PyTorch tensor
-                ])
+                model = torch.load(mod_files[i])
+
+                transform = v2.Compose([v2.ToTensor(), 
+                                        v2.Resize((224,224), antialias=True), 
+                                        v2.Normalize((0.5,), (0.5,))])
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
@@ -110,12 +116,15 @@ def predict_full_output(files, phases):
     return x, preds
 
 
-def predeict_images_CNN(files, phases = 10, powers = None, lengths = None):
+def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
 
     print(files)
 
     img_features = []
+    mod_files = glob(root + r'*.pt')
 
+    sort_args = np.argsort([i.split(sep)[-1].split('_')[-1][:-3] for i in mod_files])
+    mod_files = np.array(mod_files)[sort_args]
     with torch.no_grad():
 
         for i, f in tqdm(enumerate(files)):
@@ -125,14 +134,13 @@ def predeict_images_CNN(files, phases = 10, powers = None, lengths = None):
             all_features = []
 
             for i in range(phases):
-                model = torch.load("MultiMode Analysis/Models/Mar20_Res_Class_{}.pt".format(i))
+                model = torch.load(mod_files[i])
                 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
                 newmodel = CustomModel(model)
 
-                transform = transforms.Compose([
-                    transforms.Resize((224, 224)),  # Resize the image to a fixed size
-                    transforms.ToTensor()           # Convert the image to a PyTorch tensor
-                ])
+                transform = v2.Compose([v2.ToTensor(), 
+                                        v2.Resize((224,224), antialias=True), 
+                                        v2.Normalize((0.5,), (0.5,))])
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
@@ -162,6 +170,13 @@ def predeict_images_CNN(files, phases = 10, powers = None, lengths = None):
 
             img_features.append(np.array(all_features).flatten())
 
+
+    pca = PCA(n_components=100, random_state=22)
+
+    pca.fit(img_features)
+
+    x = pca.transform(img_features)
+
     x = np.array(img_features)
 
     return x 
@@ -181,6 +196,24 @@ def quick_kmeans(features, num_clusters):
 
 
     return kmeans.labels_, None
+
+
+def quick_fcmeans(features, num_clusters, m = 1.5, return_matrix = False):
+
+    fcm = FuzzyKMeans(k=num_clusters, m=1.5)
+    fcm.fit(features)
+    fuzzy_membership_matrix = fcm.fuzzy_labels_
+    fuzzy_membership_matrix = fuzzy_membership_matrix.T
+
+
+    if return_matrix:
+        return fuzzy_membership_matrix 
+
+    alpha = np.max(fuzzy_membership_matrix, axis=0)
+    labels = np.argmax(fuzzy_membership_matrix, axis=0)
+
+    return labels, alpha
+
 
 
 def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
@@ -242,9 +275,9 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
     return labels, alpha
 
 
-            
+           
 
-            
+           
 
 
 #Get the new data
@@ -269,29 +302,44 @@ if __name__ == '__main__':
     powers = np.array(powers)
     lengths = np.array(lengths)
 
+    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr16'
 
-    features = predeict_images_CNN(files,17)
+    features1 = predeict_images_CNN(files,model_root,8,powers, lengths)
 
-    with open('Apr_2_features.pkl', 'wb') as f:
-        pickle.dump(features, f)
+    with open('Apr_16_POWLEN_features.pkl', 'wb') as f:
+        pickle.dump(features1, f)
 
-    out, preds = predict_full_output(files, 17)
+    features2 = predeict_images_CNN(files,model_root,8)
 
-    with open('Apr_2_CNN_out.pkl', 'wb') as f:
+    with open('Apr_16_features.pkl', 'wb') as f:
+        pickle.dump(features2, f)
+
+    out, preds = predict_full_output(files, 8, model_root)
+
+    with open('Apr_16_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
+
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
 
-    
+    # with open('Apr_9_features.pkl', 'rb') as f:
+    #     features = pickle.load(f)
+
+    # labels, alphas = quick_fcmeans(features, num_clusters= 6, m= 1.5)
+
+    # print(labels, alphas)
 
     for i in range(5,15):
         
-        labels, _ = quick_kmeans(features, i)
-
+        labels1, _ = quick_kmeans(features1, i)
+        labels2, _ = quick_kmeans(features2, i)
         #labels, _ = Kmeans_no_CNN(files,9,powers,lengths)
 
-        with open(f'Apr_2_NoPow_predicted_labels_{i}.pkl', 'wb') as f:
-            pickle.dump((labels), f)
+        with open(f'Apr_16_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
+            pickle.dump((labels1), f)
+
+        with open(f'Apr_16_predicted_labels_{i}.pkl', 'wb') as f:
+            pickle.dump((labels2), f)
 
 
     # for i in range(0, 10):
