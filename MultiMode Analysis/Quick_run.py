@@ -17,7 +17,7 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
     num_threads = 14
-    ims = generate_training.generate_data_multithreaded(num_threads, 25000 // num_threads, 2500*um, 400, generate_training.modelist, [100*um, 200*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_training.generate_data_multithreaded(num_threads, 35000 // num_threads, 2500*um, 400, generate_training.modelist, [100*um, 200*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
 
 
 
@@ -25,8 +25,8 @@ if __name__ == '__main__':
     print(device)
     classes = len(generate_training.modelist)
     epochs = 30
-    criterion = torch.nn.BCEWithLogitsLoss()
-    learning_rate = 0.005
+    criterion = torch.nn.CrossEntropyLoss()
+    learning_rate = 0.0001
     val_split = 0.2
     batch_size = 128
     best_accuracy = 0.0

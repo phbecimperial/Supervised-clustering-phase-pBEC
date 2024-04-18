@@ -44,13 +44,15 @@ def mode_nums():
 
 def mode_func(multi_split = 0.5, modelist = None, max_modes = 10, single_mode = 0.05):
 
-    rand = random()
-    if rand < single_mode:
-        n = 1
-    elif rand < single_mode*4:
-        n = 2
-    else:
-        n = randint(3,max_modes)
+    # rand = random()
+    # if rand < single_mode:
+    #     n = 1
+    # elif rand < single_mode*4:
+    #     n = 2
+    # else:
+    #     n = randint(3,max_modes)
+
+    n = randint(1,max_modes + 1)
 
     ms = []
     for i in range(n):

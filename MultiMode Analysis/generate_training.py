@@ -47,38 +47,43 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # comb = modes[np.random.randint(0, len(modes)-1)]
         # comb = [1]
         # outputs = []
-        amps = 0.05 + np.random.random(len(comb))*0.95
+        amps = 0.2 + np.random.random(len(comb))*0.8
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/8 - dim/16
+        shifts = np.random.random(2)*dim/16 - dim/32
 
+        
         w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
-
         for j, (mode, amp) in enumerate(zip(comb, amps)):
 
             addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
-            addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
+            addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-10,10), reshape=False)
+            
+
             addbeam = Normal(addbeam)
             addbeam = IntAttenuator(addbeam, amp)
 
-            beam = BeamMix(beam,addbeam)
+            addbeam.field = Intensity(addbeam)
+            beam.field += addbeam.field
         beam = Normal(beam)
 
         beam.field = np.roll(np.array(beam.field), int(shifts[0]), 0)
         beam.field = np.roll(np.array(beam.field), int(shifts[1]), 1)
 
-        f_angle = np.random.random() * 2 * np.pi
-        f_size =  min(fringe_size) + np.random.random()*np.diff(fringe_size)[0]
-        x_fringe = 1/f_size*100*um*np.cos(f_angle)
-        y_fringe = 1/f_size*100*um*np.sin(f_angle)
-        beam1 = PointSource(beam1, x=x_fringe, y=y_fringe)
-        beam2 = PointSource(beam2, x=-x_fringe, y=-y_fringe)
+        # f_angle = np.random.random() * 2 * np.pi
+        # f_size =  min(fringe_size) + np.random.random()*np.diff(fringe_size)[0]
+        # x_fringe = 1/f_size*100*um*np.cos(f_angle)
+        # y_fringe = 1/f_size*100*um*np.sin(f_angle)
+        # beam1 = PointSource(beam1, x=x_fringe, y=y_fringe)
+        # beam2 = PointSource(beam2, x=-x_fringe, y=-y_fringe)
 
-        intbeam = BeamMix(beam1,beam2)
-        intbeam = Fresnel(intbeam, z=1*cm)
+        # intbeam = BeamMix(beam1,beam2)
+        # intbeam = Fresnel(intbeam, z=1*cm)
+
         # beam = RandomIntensity(beam, np.random.randint(0, 1000),
         #                        noise=noise*100*np.log(np.max(Intensity(beam))))
-        warp_interference = noise_shift(Intensity(intbeam), (dim/500)**2*np.random.randint(5,20))
-        beam = MultIntensity(beam, warp_interference)
+
+        # warp_interference = noise_shift(Intensity(intbeam), (dim/500)**2*np.random.randint(5,20))
+        # beam = MultIntensity(beam, warp_interference)
 
         # beam = Normal(beam)
         # beam = Fresnel(beam, z=0.2*cm)
@@ -95,6 +100,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         #beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
+        im = Intensity(beam)/np.max(Intensity(beam))
         im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,10))
 
         im_max = np.max(im)
@@ -177,12 +183,12 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
 # 
 
 modelist = [
-    ([0,0], False), ([0,1], False), ([0,4], False), ([0,6], False), ([0,8], False), ([0,9], False), ([0,10], False),  
-    ([1,1], False),
+    ([0,0], False, 0), ([0,1], False, 155 - 90), 
+    ([0,4], False, 70 + 90), ([0,6], False, 70 + 90), ([0,8], False, 70 + 90), ([0,9], False, 70 + 90), ([0,10], False, 70 + 90),  
 ]
 
 # modelist = [
-#     ([0,9], False), ([0,9], False) 
+#     ([0,9], False, False), ([0,1], False, True) 
 # ]
 
 #gererate_data(1, 2000*um, 300, [0,2], 100*um, [0.5, 1.5], save = True, LG=False)
@@ -192,6 +198,6 @@ modelist = [
 if __name__ == '__main__':
     t = time.localtime()
     save = True
-    save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
-    num_threads = 10
-    ims = generate_data_multithreaded(num_threads, 300 // num_threads, 2500*um, 500, modelist, [100*um, 200*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
+    save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Test Images'
+    num_threads = 2
+    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [100*um, 200*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)

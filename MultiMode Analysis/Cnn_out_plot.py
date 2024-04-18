@@ -79,7 +79,8 @@ if __name__ == '__main__':
 
     fig, axes, gs = power_length_analysis.grid_plot(outs.shape[1],outs.shape[1]//2,2, 0.3)
 
-
+    fig.supxlabel('$\lambda$ ($nm$)')
+    fig.supylabel('Pump power $(W)$')
 
     for i in range(outs.shape[1]):
         

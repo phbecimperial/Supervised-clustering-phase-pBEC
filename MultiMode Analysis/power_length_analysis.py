@@ -87,7 +87,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10):
                 axes[i].set_xticklabels([])
 
     else:
-        gs = gridspec.GridSpec(nrows=nplots, ncols=1)
+        gs = gridspec.GridSpec(nrows=nrows, ncols=1)
         gs01 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=ncols, subplot_spec=gs[1])
         gs02 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=(nplots - ncols), 
                                                 subplot_spec=gs[0], wspace=wspace)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from glob import glob as glob
 
-img_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
+img_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Test Images'
 
 im_files = glob(img_dir + sep + '*.pkl')
 
@@ -14,13 +14,13 @@ for i in im_files:
     with open(i, 'rb') as f:
         img, label = pkl.load(f)
     
-    # print(label)
-    # plt.imshow(img)
-    # plt.title(i)
-    # plt.show()
+    print(label)
+    plt.imshow(img)
+    plt.title(i)
+    plt.show()
 
-    for i, item in enumerate(label):
+#     for i, item in enumerate(label):
 
-        mode_tot += item[0]
+#         mode_tot += item[0]
 
-print(mode_tot / (len(im_files) * 8))
+# print(mode_tot / (len(im_files) * 8))

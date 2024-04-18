@@ -304,17 +304,17 @@ if __name__ == '__main__':
 
     model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr16'
 
-    features1 = predeict_images_CNN(files,model_root,8,powers, lengths)
+    features1 = predeict_images_CNN(files,model_root,7,powers, lengths)
 
     with open('Apr_16_POWLEN_features.pkl', 'wb') as f:
         pickle.dump(features1, f)
 
-    features2 = predeict_images_CNN(files,model_root,8)
+    features2 = predeict_images_CNN(files,model_root,7)
 
     with open('Apr_16_features.pkl', 'wb') as f:
         pickle.dump(features2, f)
 
-    out, preds = predict_full_output(files, 8, model_root)
+    out, preds = predict_full_output(files, 7, model_root)
 
     with open('Apr_16_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
