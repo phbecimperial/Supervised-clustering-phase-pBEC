@@ -11,7 +11,9 @@ import Meta_classifier
 import matplotlib
 import select_files
 import matplotlib.gridspec as gridspec 
-import matplotlib.ticker as ticker 
+import matplotlib.ticker as ticker
+from scipy.spatial import KDTree
+from scipy.interpolate import griddata
 
 
 def crop_save_image(files,size,root):
@@ -171,6 +173,92 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color):
                interpolation_stage='rgba', origin='lower', 
                extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
                aspect='auto', cmap=cust_cmap)
+
+def nan_replacer(array):
+    no_nan = np.argwhere(~np.isnan(array))
+    tree = KDTree(no_nan)
+
+    # Iterate over array where nans are present, and replace with nearest value
+    for i, j in zip(*np.where(np.isnan(array))):
+        query_point = np.array([[i, j]])
+        _, nearest_index = tree.query(query_point)
+        nearest_coord = no_nan[nearest_index][0]
+        array[i, j] = array[nearest_coord[0], nearest_coord[1]]
+
+    return array
+
+def most_common_lab(lab):
+    labs, counts = np.unique(lab, return_counts=True)
+    return labs[np.argmax(counts)]
+
+def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
+    """
+    Note: append thermal cloud data to x, y, alpha and label, and give a label
+    of -1
+
+    Parameters
+    ----------
+    data_x : Wavelengths
+        1D flattened array
+    data_y : Pwrs
+        1D flattened array
+    alphas : probabilities
+        1D flatten array
+    labels : cluster labels
+        1D flatten array
+
+
+    Returns
+    -------
+    None.
+
+    """
+
+
+
+    x_range = (min(data_x), max(data_x))
+    y_range=(min(data_y), max(data_y))
+
+
+
+    statistic_label, _, _, _ = binned_statistic_2d(data_x, data_y,
+                                             labels, bins=30,
+                                             range=[x_range,y_range],
+                                             statistic=most_common_lab)
+
+
+    statistic_label = nan_replacer(statistic_label)
+
+
+    x_grid = np.linspace(x_range[0], x_range[1], 100)  # Adjust the number of points (100 here) as needed
+    y_grid = np.linspace(y_range[0], y_range[1]-1e-5, 100)
+    X, Y = np.meshgrid(x_grid, y_grid)
+
+
+    #Handling the alphas
+    #If this is weird, switch to method='nearest'. Maybe this would have been
+    #an easier way to handle the nearest neightbour thing from the start!
+    alphas_interp = griddata((data_x, data_y), alphas, (X, Y), method='cubic',
+                             fill_value=1)
+
+    X, Y, alphas_interp = X.flatten(), Y.flatten(), alphas_interp.flatten()
+    statistic_alpha, _, _, _ = binned_statistic_2d(X, Y,
+                                             alphas_interp, bins=30,
+                                             range=[x_range,y_range])
+    statistic_alpha[statistic_alpha>1] = 1
+    statistic_alpha[statistic_alpha<0] = 0
+
+
+    statistic_alpha = np.nan_to_num(statistic_alpha)
+
+
+    if fig is None:
+        fig, ax = plt.subplots()
+
+    ax.imshow(statistic_label.T,
+              extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+              aspect='auto', origin='lower', alpha=statistic_alpha)
+
 
 
 
