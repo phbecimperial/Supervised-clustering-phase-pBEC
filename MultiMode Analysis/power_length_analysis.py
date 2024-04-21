@@ -239,9 +239,15 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
     #If this is weird, switch to method='nearest'. Maybe this would have been
     #an easier way to handle the nearest neightbour thing from the start!
     alphas_interp = griddata((data_x, data_y), alphas, (X, Y), method='cubic',
-                             fill_value=1)
+                             fill_value=(np.random.random(1)*0.2 + 0.8))
 
     X, Y, alphas_interp = X.flatten(), Y.flatten(), alphas_interp.flatten()
+
+    #Alternative, but worse interpolation
+    # alphas_interp=interp2d(data_x, data_y, alphas, kind='linear')
+    # alphas_interp = alphas_interp(x_grid, y_grid)
+    # alphas_interp=alphas_interp.flatten()
+
     statistic_alpha, _, _, _ = binned_statistic_2d(X, Y,
                                              alphas_interp, bins=30,
                                              range=[x_range,y_range])
