@@ -19,8 +19,8 @@ for i in im_files:
     plt.title(i)
     plt.show()
 
-#     for i, item in enumerate(label):
+    for i, item in enumerate(label):
 
-#         mode_tot += item[0]
+        mode_tot += item[0]
 
-# print(mode_tot / (len(im_files) * 8))
+print(mode_tot / (len(im_files) * 8))

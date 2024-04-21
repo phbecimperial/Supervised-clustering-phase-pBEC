@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import select_files
 import scienceplots
-from generate_training import modelist
+# from generate_training import modelist
 import power_length_analysis
 
 
@@ -15,6 +15,11 @@ if __name__ == '__main__':
 
     plt.style.use(['science', 'no-latex'])
 
+
+    modelist = [
+    ([0,0], False, 0), ([0,1], False, 155 - 90), 
+    ([0,4], False, 70 + 90), ([0,6], False, 70 + 90),  ([0,9], False, 70 + 90),
+]
     with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
         files = pkl.load(f)
 
@@ -60,7 +65,7 @@ if __name__ == '__main__':
 
     # label_files = glob('Apr_9_predicted_labels_*.pkl')
 
-    with open('Apr_16_CNN_out.pkl', 'rb') as f:
+    with open('Apr_20_CNN_out.pkl', 'rb') as f:
         outs, preds = pkl.load(f)
 
     label_list = np.unique(preds, axis=0)

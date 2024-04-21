@@ -105,7 +105,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10):
     
     return fig, axes, gs
 
-def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = None, ax = None):
+def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = None, ax = None, to_alpha = False):
 
     # density, xedges, yedges = np.histogram2d(data_x, 
     #                                data_y,
@@ -124,9 +124,10 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = Non
     
     statistic = np.nan_to_num(statistic)
 
-    alphas = np.linspace(0, 1, cust_cmap.N+3)
-    # alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
-    # cust_cmap._lut[:,-1] = alphas
+    if to_alpha:
+        alphas = np.linspace(0, 1, cust_cmap.N+3)
+        alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
+        cust_cmap._lut[:,-1] = alphas
 
 
     if fig is None:
@@ -205,6 +206,7 @@ if __name__ == '__main__':
         lengths.append(float(split_file[5]))
         int_times.append(float(split_file[3]))
         pcas.append(float(split_file[-2]))
+        images.append(image.flatten())
 
 
     data = {
@@ -212,7 +214,8 @@ if __name__ == '__main__':
         'Powers': np.array(powers),
         'Lengths': np.array(lengths),
         'Int_times': np.array(int_times),
-        'Pcas': np.array(pcas)
+        'Pcas': np.array(pcas),
+        'Images': np.array(images)
     }
 
 
@@ -231,9 +234,10 @@ if __name__ == '__main__':
         # with open('Apr_2_CNN_out.pkl', 'rb') as f:
         #     outs, preds = pkl.load(f)
 
-        with open(file, 'rb') as f:
-            cluster_labels = pkl.load(f)
+        # with open(file, 'rb') as f:
+        #     cluster_labels = pkl.load(f)
         
+        cluster_labels, _ = Meta_classifier.quick_kmeans(data['Images'][stim_mask], 6)
         # cluster_labels = preds
 
 

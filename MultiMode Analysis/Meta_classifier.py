@@ -121,6 +121,7 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
     print(files)
 
     img_features = []
+    img_pl_features = []
     mod_files = glob(root + r'*.pt')
 
     sort_args = np.argsort([i.split(sep)[-1].split('_')[-1][:-3] for i in mod_files])
@@ -131,8 +132,8 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
 
             device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
-            all_features = []
-
+            pl_features = []
+            all_feats = []
             for i in range(phases):
                 model = torch.load(mod_files[i])
                 newmodel = torch.nn.Sequential(*(list(model.children())[:-1]))
@@ -160,24 +161,34 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
                 if (powers is not None) and (lengths is not None):
 
 
-                    outputs = np.concatenate((outputs, [powers[i]]))
+                    ploutputs = np.concatenate((outputs, [powers[i]]))
                 
-                    outputs = np.concatenate((outputs, [lengths[i]]))
+                    ploutputs = np.concatenate((outputs, [lengths[i]]))
 
-                all_features.append(outputs)
+                    pl_features.append(ploutputs)
+
+                all_feats.append(outputs)
 
 
 
-            img_features.append(np.array(all_features).flatten())
+            img_features.append(np.array(all_feats).flatten())
+            if powers is not None:
+                img_pl_features.append(np.array(pl_features).flatten())
 
 
     pca = PCA(n_components=100, random_state=22)
-
     pca.fit(img_features)
-
     x = pca.transform(img_features)
+    x = np.array(x)
 
-    x = np.array(img_features)
+    if powers is not None:
+        pca1 = PCA(n_components=100, random_state=22)
+        pca1.fit(img_pl_features)
+        y = pca1.transform(img_pl_features)
+        y = np.array(y)
+
+        return x, y
+
 
     return x 
   
@@ -302,21 +313,19 @@ if __name__ == '__main__':
     powers = np.array(powers)
     lengths = np.array(lengths)
 
-    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr16'
+    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr2001'
 
-    features1 = predeict_images_CNN(files,model_root,7,powers, lengths)
+    features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths)
 
-    with open('Apr_16_POWLEN_features.pkl', 'wb') as f:
-        pickle.dump(features1, f)
+    with open('Apr_2001_POWLEN_features.pkl', 'wb') as f:
+        pickle.dump(plfeatures, f)
 
-    features2 = predeict_images_CNN(files,model_root,7)
+    with open('Apr_2001_features.pkl', 'wb') as f:
+        pickle.dump(features, f)
+ 
+    out, preds = predict_full_output(files, 5, model_root)
 
-    with open('Apr_16_features.pkl', 'wb') as f:
-        pickle.dump(features2, f)
-
-    out, preds = predict_full_output(files, 7, model_root)
-
-    with open('Apr_16_CNN_out.pkl', 'wb') as f:
+    with open('Apr_2001_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
 
 
@@ -335,10 +344,10 @@ if __name__ == '__main__':
         labels2, _ = quick_kmeans(features2, i)
         #labels, _ = Kmeans_no_CNN(files,9,powers,lengths)
 
-        with open(f'Apr_16_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_20_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels1), f)
 
-        with open(f'Apr_16_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_20_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels2), f)
 
 

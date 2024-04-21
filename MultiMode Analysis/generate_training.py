@@ -47,16 +47,16 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # comb = modes[np.random.randint(0, len(modes)-1)]
         # comb = [1]
         # outputs = []
-        amps = 0.2 + np.random.random(len(comb))*0.8
+        amps = 0.3 + np.random.random(len(comb))*0.7
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/16 - dim/32
+        shifts = np.random.random(2)*dim/32 - dim/64
 
         
-        w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
+        # w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
         for j, (mode, amp) in enumerate(zip(comb, amps)):
-
+            w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
             addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
-            addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-10,10), reshape=False)
+            addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-15,15), reshape=False)
             
 
             addbeam = Normal(addbeam)
@@ -104,7 +104,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,10))
 
         im_max = np.max(im)
-        im += im * np.random.random(im.shape)/10# + np.random.random()*np.random.normal(im_max/100, np.std(im), im.shape)
+        im += im * np.random.random(im.shape)/10 + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * (im + np.min(im)) / (np.max(im) + np.min(im))
 
@@ -184,7 +184,7 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
 
 modelist = [
     ([0,0], False, 0), ([0,1], False, 155 - 90), 
-    ([0,4], False, 70 + 90), ([0,6], False, 70 + 90), ([0,8], False, 70 + 90), ([0,9], False, 70 + 90), ([0,10], False, 70 + 90),  
+    ([0,4], False, 70 + 90), ([0,6], False, 70 + 90), ([0,9], False, 70 + 90),# ([0,10], False, 70 + 90), ([0,8], False, 70 + 90)
 ]
 
 # modelist = [
@@ -200,4 +200,4 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Test Images'
     num_threads = 2
-    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [100*um, 200*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [100*um, 210*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)

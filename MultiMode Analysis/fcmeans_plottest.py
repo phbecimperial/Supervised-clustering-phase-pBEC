@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
 
 
-    with open('Apr_19_POWLEN_features.pkl', 'rb') as f:
+    with open('Apr_20_POWLEN_features.pkl', 'rb') as f:
         features = pickle.load(f)   
 
     labels, alphas = Meta_classifier.quick_fcmeans(features, num_clusters= 6, m= 1)
