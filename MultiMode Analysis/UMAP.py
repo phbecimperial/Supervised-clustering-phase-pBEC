@@ -4,7 +4,6 @@ import glob
 import numpy as np
 from scipy.ndimage import center_of_mass
 from os.path import sep
-from sklearn.decomposition import PCA
 import cv2
 from os.path import sep
 import umap
@@ -13,142 +12,119 @@ import scienceplots
 from sklearn.cluster import KMeans
 import tqdm
 import gc
+import matplotlib
+#import hdbscan
+import UMAP_utils as uu
+import pickle
+from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 
 
-
-
-def read(bec_file: str, files: list[str]):
-    img_features = []
-
-    all_info = [file.split('_') for file in files]
-    int_times = [float(file[4]) for file in all_info]
-    pwrs = [float(file[5]) for file in all_info]
-    wavelengths = [float(file[6]) for file in all_info]
-
-    bec_im = cv2.imread(bec_file, 0)
-    cx, cy = center_of_mass(bec_im ** 3)
-
-    for i, f in tqdm.tqdm(enumerate(files)):
-        image = cv2.imread(f, 0)
-
-
-        image = zoom(image, (224 / image.shape[0], 244 / image.shape[1]))
-
-        size = (224, 224)
-        image_crop = image[int(int(cx) - size[0] / 2):int(int(cx) + size[0] / 2),
-                     int(int(cy) - size[1] / 2):int(int(cy) + size[1] / 2)]
-
-        image = image.flatten()
-        #image = image/int_times[i]
-
-
-
-        img_features.append(image)
-
-    img_features = np.array(img_features)
-
-    return img_features, np.array(pwrs), np.array(wavelengths)
 
 plt.style.use(['science','ieee'])
 
+
+#You can supply your own method to get this info
 becpath = r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data\pbec_20240321_003143_62499.0_0.18152103448275864_940.0557861328125_9.0_.png'
 path=r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data'
 files = glob.glob(path+'\*.png')
 
-img_features, pwrs, wavelengths = read(becpath, files)
+img_features, wavelengths, pwrs, thermal_wavelengths, thermal_pwrs = uu.load_raw_ims(becpath, files)
+with open(r'C:/Users/natak/OneDrive - Imperial College London/Documents/University/Year 4/MSci Project-r018104/AprData/Apr_2001_features.pkl', 'rb') as f:
+    img_features = pickle.load(f)
 
-#Filtering
-mask = np.max(img_features, axis=1) >= 50
-img_features = img_features[mask]
-pwrs = pwrs[mask]
-wavelengths = wavelengths[mask]
 
-pca = PCA(n_components=100, random_state=22)
-pca.fit(img_features)
-img_features = pca.transform(img_features)
-#%%
 def umap2d(neighbors, min_dist, embedding_dim=2, kmeans_clusters=5):
     # Initialize UMAP
-    reducer = umap.UMAP(n_neighbors=neighbors, min_dist=min_dist, random_state=22)
+    reducer = umap.UMAP(n_neighbors=neighbors, min_dist=min_dist, metric='euclidean', random_state=22, densmap=True, n_components=embedding_dim)
     embedding = reducer.fit_transform(img_features)
 
-    kmeans = KMeans(n_clusters=kmeans_clusters, random_state=22)
+    kmeans = FuzzyKMeans(k=kmeans_clusters, m=2)
     kmeans.fit(img_features)
-    
+    cluster_labels = kmeans.labels_
+
+    # clusterer = hdbscan.HDBSCAN(min_cluster_size=30, cluster_selection_method='leaf')
+    # cluster_labels = clusterer.fit_predict(img_features)
+
     # Plot
     plt.title(f'neighbours: {neighbors}, dist: {min_dist}')
-    plt.scatter(embedding[:, 0], embedding[:, 1], s=5, c=kmeans.labels_, cmap='viridis')
+    plt.scatter(embedding[:, 0], embedding[:, 1], s=5, c=cluster_labels, cmap='Spectral')
     plt.xlabel('UMAP 1')
     plt.ylabel('UMAP 2')
     plt.show()
 
-    reducer = umap.UMAP(n_neighbors=neighbors, min_dist=min_dist,
-                        n_components=embedding_dim, random_state=22)
-    embedding = reducer.fit_transform(img_features)
 
-    lab = embedding, kmeans.labels_
+    lab = embedding, cluster_labels
     return lab
 
 
 
-
-
-# #%%
-# all_info = [file.split('_') for file in files]
-# int_times = [int(file[4]) for file in all_info]
-
-# #%%
-
-
-
-
-
-
-#Neightbours
-# neigh = np.linspace(4, 50, 10, dtype=int)
-# for n in tqdm.tqdm(neigh):
-#     umap2d(n, min_dist=0.1)
-#     gc.collect()
-
-
 if __name__ == '__main__':
-    #Distances
-    # min_dists = np.linspace(0, 1, 11)
-    # for d in tqdm.tqdm(min_dists):
-    #     umap2d(14, d)
-    #     gc.collect()
+    embedding, labels = umap2d(16, 0, embedding_dim=2, kmeans_clusters=8)
 
-    embedding, labels = umap2d(10, 0.2, embedding_dim=2, kmeans_clusters=5)
+    #Check labels are the same length
+    labels = labels[0:len(wavelengths)]
 
-    plt.scatter(wavelengths, pwrs, c=labels)
-    plt.title('K-means, no umap')
-    plt.show()
+    #Plot binned plot. Replace with plot2dhistv2 at some point
+    uu.resample_and_plot(np.vstack((wavelengths, pwrs, labels)).T, bins=(37, 30))
 
-    kmeans = KMeans(n_clusters=3, random_state=22)
+    #Cluster to umap
+    kmeans = FuzzyKMeans(k=7, m=1.5)
     kmeans.fit(embedding)
+    labels = kmeans.labels_
 
-    plt.scatter(wavelengths, pwrs, c=kmeans.labels_)
-    plt.show()
+    #HDBSCAN is also avaliable in scikit learn, can be fuzzy,
+    # kmeans = hdbscan.HDBSCAN(min_cluster_size=8, metric='euclidean', prediction_data='True', cluster_selection_method='eom')
+    # labels = kmeans.fit_predict(img_features)
+    #
+    # z = hdbscan.all_points_membership_vectors(kmeans)
+    # labels = np.argmax(z, axis=1)
 
-    plt.scatter(embedding[:, 0], embedding[:, 1], s=5, c=kmeans.labels_, cmap='viridis')
+    plt.scatter(embedding[:, 0], embedding[:, 1], s=5, c=labels, cmap='Spectral')
     plt.title('K-means, umap')
     plt.show()
 
-
-# reducer = umap.UMAP(n_components=3)
-# embedding = reducer.fit_transform(img_features)
-
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(embedding[:, 0], embedding[:, 1], embedding[:, 2], s=5)
-# ax.set_title('UMAP 3D projection')
-# ax.set_xlabel('UMAP 1')
-# ax.set_ylabel('UMAP 2')
-# ax.set_zlabel('UMAP 3')
-# plt.show()
-#%%
+    uu.resample_and_plot(np.vstack((wavelengths, pwrs, labels)).T, bins=(37, 30))
 
 
+
+    #Do you want an interactive plot?
+    #Try uu.interactive_scatter(x, y, img_files), where x and y are the first and second embedding dims
+
+
+
+
+
+
+
+
+
+
+
+
+
+    #Plot scatter plot of clustering before umap
+    # scatter = plt.scatter(wavelengths, pwrs, c=labels)
+    # plt.title('Clustering, no umap')
+    # legend1 = plt.legend(*scatter.legend_elements(), title="Clusters", loc="best")
+    # plt.gca().add_artist(legend1)
+    # plt.show()
+
+    # wavelengthst = np.append(wavelengths, thermal_wavelengths)
+    # pwrst = np.append(pwrs, thermal_pwrs)
+    # labelst = np.append(labels, np.ones(len(thermal_pwrs))*-1)
+    #
+    # t =np.vstack((wavelengthst, pwrst, labelst)).T
+    # labels = labels[0:len(wavelengths)]
+    # uu.resample_and_plot(t, bins=(37, 30))
+    #
+    # labels = labels[0:len(wavelengths)]
+    # scatter = plt.scatter(wavelengths, pwrs, c=labels, cmap='Spectral')
+    # plt.title('K-means, no umap')
+    #
+    # # Add legend
+    # legend1 = plt.legend(*scatter.legend_elements(), title="Clusters", loc="best")
+    # plt.gca().add_artist(legend1)
+    # plt.show()
 
 
 
