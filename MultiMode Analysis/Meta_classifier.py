@@ -313,26 +313,26 @@ if __name__ == '__main__':
     powers = np.array(powers)
     lengths = np.array(lengths)
 
-    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr2001'
+    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr22'
 
     features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths)
 
-    with open('Apr_2001_POWLEN_features.pkl', 'wb') as f:
+    with open('Apr_22_POWLEN_features.pkl', 'wb') as f:
         pickle.dump(plfeatures, f)
 
-    with open('Apr_2001_features.pkl', 'wb') as f:
+    with open('Apr_22_features.pkl', 'wb') as f:
         pickle.dump(features, f)
  
     out, preds = predict_full_output(files, 5, model_root)
 
-    with open('Apr_2001_CNN_out.pkl', 'wb') as f:
+    with open('Apr_22_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
 
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
 
-    # with open('Apr_9_features.pkl', 'rb') as f:
-    #     features = pickle.load(f)
+    with open('Apr_22_features.pkl', 'rb') as f:
+        features = pickle.load(f)
 
     # labels, alphas = quick_fcmeans(features, num_clusters= 6, m= 1.5)
 
@@ -340,14 +340,14 @@ if __name__ == '__main__':
 
     for i in range(5,15):
         
-        labels1, _ = quick_kmeans(features1, i)
-        labels2, _ = quick_kmeans(features2, i)
+        # labels1, _ = quick_kmeans(features1, i)
+        labels2, _ = quick_kmeans(features, i)
         #labels, _ = Kmeans_no_CNN(files,9,powers,lengths)
 
-        with open(f'Apr_20_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
-            pickle.dump((labels1), f)
+        # with open(f'Apr_20_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
+        #     pickle.dump((labels1), f)
 
-        with open(f'Apr_20_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_22_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels2), f)
 
 
