@@ -30,7 +30,7 @@ def select_stimulated(files, cuttoff: float):
         img = cv2.imread(i,0)
 
         truth_list.append(np.max(img) > cuttoff)
-    print(truth_list)
+    # print(truth_list)
     truth_list = np.array(truth_list)
     return files[truth_list], truth_list
 

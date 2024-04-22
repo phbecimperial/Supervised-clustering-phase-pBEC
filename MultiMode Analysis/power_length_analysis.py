@@ -13,7 +13,7 @@ import select_files
 import matplotlib.gridspec as gridspec 
 import matplotlib.ticker as ticker
 from scipy.spatial import KDTree
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, CloughTocher2DInterpolator
 
 
 def crop_save_image(files,size,root):
@@ -75,24 +75,28 @@ def fit_pca(lengths, pcas):
     return fit(pcas)
 
 
-def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10):
-    fig = plt.figure(figsize=[7.2, 3.6])
+def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10, fig = None):
+    if fig is None:
+        fig = plt.figure(figsize=[7.2, 3.6])
     axes = []
+
+    gs = gridspec.GridSpec(nrows=1, ncols=2, wspace=0.08, width_ratios=[0.96, 0.04])
+
     if nplots % 2 == 0:
-        gs = gridspec.GridSpec(nrows=nrows, ncols=ncols, wspace=wspace)
+        gsp = gridspec.GridSpecFromSubplotSpec(nrows = nrows, ncols=ncols, hspace=0.4, subplot_spec=gs[0])
 
         for i in range(ncols*2):
-            axes.append(fig.add_subplot(gs[i//ncols,i%ncols], title = i))
+            axes.append(fig.add_subplot(gsp[i//ncols,i%ncols], title = i))
             if i % ncols != 0:
                 axes[i].set_yticklabels([])
             if i//ncols == 0:
                 axes[i].set_xticklabels([])
 
     else:
-        gs = gridspec.GridSpec(nrows=nrows, ncols=1)
-        gs01 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=ncols, subplot_spec=gs[1])
+        gsp = gridspec.GridSpecFromSubplotSpec(nrows=nrows, ncols=1, hspace=0.4, subplot_spec=gs[0])
+        gs01 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=ncols, subplot_spec=gsp[1])
         gs02 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=(nplots - ncols), 
-                                                subplot_spec=gs[0], wspace=wspace)
+                                                subplot_spec=gsp[0], wspace=wspace)
         for i in range(ncols):
             axes.append(fig.add_subplot(gs01[i]))
             if i != 0:
@@ -107,7 +111,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10):
     
     return fig, axes, gs
 
-def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = None, ax = None, to_alpha = False):
+def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color = None, cmap = None, fig = None, ax = None, to_alpha = False):
 
     # density, xedges, yedges = np.histogram2d(data_x, 
     #                                data_y,
@@ -120,24 +124,27 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = Non
                                          range = [x_range,y_range])
 
     
-    cust_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('cmap',['white',color],256)
-    
-    cust_cmap._init()
-    
-    statistic = np.nan_to_num(statistic)
+    if color is not None:
+        cust_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('cmap',['white',color],256)
 
-    if to_alpha:
-        alphas = np.linspace(0, 1, cust_cmap.N+3)
-        alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
-        cust_cmap._lut[:,-1] = alphas
+        cust_cmap._init()
 
+        statistic = np.nan_to_num(statistic)
+
+        if to_alpha:
+            alphas = np.linspace(0, 1, cust_cmap.N+3)
+            alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
+            cust_cmap._lut[:,-1] = alphas
+
+    else:
+        cust_cmap = matplotlib.colormaps[cmap]
 
     if fig is None:
         fig, ax = plt.subplots()
 
 
 
-    ax.imshow(statistic.T, 
+    plot = ax.imshow(statistic.T, 
             extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
             aspect='auto', cmap=cust_cmap, origin='lower')
 
@@ -146,7 +153,7 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color, fig = Non
     #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
     #            aspect='auto', cmap=cust_cmap)
 
-    return fig, ax   
+    return fig, ax, plot
 
 def plot_2dhist(data_x, data_y, x_range, y_range, color):
     density, _, _ = np.histogram2d(data_x, 
@@ -172,7 +179,7 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color):
     plt.imshow(density.T, interpolation='bicubic',
                interpolation_stage='rgba', origin='lower', 
                extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-               aspect='auto', cmap=cust_cmap)
+               aspect='auto', cmap=cust_cmap, vmin=0, vmax=1)
 
 def nan_replacer(array):
     no_nan = np.argwhere(~np.isnan(array))
@@ -190,6 +197,67 @@ def nan_replacer(array):
 def most_common_lab(lab):
     labs, counts = np.unique(lab, return_counts=True)
     return labs[np.argmax(counts)]
+
+
+def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bins = 30, x_range = [940, 960], y_range = [0.08,0.3], fig = None, ax = None):
+
+    parent_map = matplotlib.colormaps[cmap]
+
+    x_int_grid = np.linspace(min(data_x), max(data_x), 100)  # Adjust the number of points (100 here) as needed
+    y_int_grid = np.linspace(min(data_y), max(data_y), 100)
+    Xi, Yi = np.meshgrid(x_int_grid, y_int_grid)
+
+    for i, label in enumerate(np.unique(labels)):
+        mask = label == labels
+
+        color = parent_map(label/(max(np.unique(labels)+1)))
+
+        if label == -1:
+            color = 'dimgrey'
+        # interp = CloughTocher2DInterpolator((data_x[mask], data_y[mask]), alphas[mask], fill_value=np.nan)        
+        # Z = interp(Xi,Yi)
+        
+        # Z = griddata((data_x[mask], data_y[mask]), alphas[mask],(Xi,Yi), method = 'linear')
+
+        # Xi, Yi, Z = (Xi.flatten(), Yi.flatten(), Z.flatten())
+
+        if alphas is None:
+            bin_stat, xps, yps,_ = binned_statistic_2d(data_x[mask], data_y[mask], labels[mask], 
+                                                  statistic = statistic, bins = bins, range=[x_range, y_range])
+        else:
+            bin_stat, xps, yps,_ = binned_statistic_2d(data_x[mask], data_y[mask], alphas[mask], 
+                                                  statistic = statistic, bins = 20, range=[x_range, y_range])
+        
+        X,Y = np.meshgrid(xps[:-1],yps[:-1])
+        
+
+        cust_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('cmap',['white',color],256)
+
+        cust_cmap._init()
+        
+        opacity = np.linspace(0, 1, cust_cmap.N+3)
+        # opacity = np.heaviside(opacity - 0.5, np.ones_like(opacity)) * 0.4
+        cust_cmap._lut[:,-1] = opacity
+
+        bin_stat = bin_stat.flatten()
+        # nan_mask = np.invert(np.isnan(bin_stat))
+        bin_stat = np.nan_to_num(bin_stat)
+        interp = CloughTocher2DInterpolator(list(zip(X.flatten(),Y.flatten())), bin_stat, fill_value = 0)
+        
+        Z = interp(Xi,Yi)
+
+        fake_bin , _, _, _ = binned_statistic_2d(Xi.flatten(), Yi.flatten(), Z.flatten(), 
+                                                  statistic = statistic, bins = bins, range=[x_range, y_range])
+
+        plt.imshow(fake_bin, cmap = cust_cmap, extent=x_range + y_range, aspect='auto', origin='lower')
+        plt.title(label)
+    plt.show()
+        
+
+
+
+
+        
 
 def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
     """
@@ -224,7 +292,7 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
     statistic_label, _, _, _ = binned_statistic_2d(data_x, data_y,
                                              labels, bins=30,
                                              range=[x_range,y_range],
-                                             statistic=most_common_lab)
+                                             statistic='mean')
 
 
     statistic_label = nan_replacer(statistic_label)
@@ -238,7 +306,7 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
     #Handling the alphas
     #If this is weird, switch to method='nearest'. Maybe this would have been
     #an easier way to handle the nearest neightbour thing from the start!
-    alphas_interp = griddata((data_x, data_y), alphas, (X, Y), method='cubic',
+    alphas_interp = griddata((data_x, data_y), alphas, (X, Y), method='nearest',
                              fill_value=(np.random.random(1)*0.2 + 0.8))
 
     X, Y, alphas_interp = X.flatten(), Y.flatten(), alphas_interp.flatten()
@@ -263,7 +331,7 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
 
     ax.imshow(statistic_label.T,
               extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-              aspect='auto', origin='lower', alpha=statistic_alpha)
+              aspect='auto', origin='lower', alpha=statistic_alpha.T)
 
 
 
@@ -318,7 +386,7 @@ if __name__ == '__main__':
 
     spect_map = matplotlib.cm.get_cmap('brg')
 
-    label_files = glob('Apr_16_POWLEN_predicted_labels_*.pkl')
+    label_files = glob('Apr_2001_predicted_labels_*.pkl')
 
     for file in label_files:
 
@@ -328,10 +396,10 @@ if __name__ == '__main__':
         # with open('Apr_2_CNN_out.pkl', 'rb') as f:
         #     outs, preds = pkl.load(f)
 
-        # with open(file, 'rb') as f:
-        #     cluster_labels = pkl.load(f)
+        with open(file, 'rb') as f:
+            cluster_labels = pkl.load(f)
         
-        cluster_labels, _ = Meta_classifier.quick_kmeans(data['Images'][stim_mask], 6)
+        # cluster_labels, _ = Meta_classifier.quick_kmeans(data['Images'][stim_mask], 6)
         # cluster_labels = preds
 
 

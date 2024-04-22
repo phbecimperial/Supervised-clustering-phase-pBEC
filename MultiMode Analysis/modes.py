@@ -52,7 +52,7 @@ def mode_func(multi_split = 0.5, modelist = None, max_modes = 10, single_mode = 
     # else:
     #     n = randint(3,max_modes)
 
-    n = randint(1,max_modes - 1)
+    n = randint(1,max_modes)
 
     ms = []
     for i in range(n):

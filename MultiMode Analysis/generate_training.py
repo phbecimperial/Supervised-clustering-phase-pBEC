@@ -55,9 +55,14 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
         for j, (mode, amp) in enumerate(zip(comb, amps)):
             w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
+            if mode[3] is not False:
+                w = np.random.random(1)*(max(mode[3]) - min(mode[3])) + min(mode[3])
+
             addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
-            addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-15,15), reshape=False)
-            
+            if mode[2] is not False:
+                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-15,15), reshape=False)
+            else:
+                addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
             addbeam = Normal(addbeam)
             addbeam = IntAttenuator(addbeam, amp)
@@ -182,9 +187,16 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
 #     ([1,1], False), ([1,2], False), ([1,3], False), ([1,4], False)
 # 
 
+# 2001 - 22
+# modelist = [
+#     ([0,0], False, 0, False), ([0,1], False, 155 - 90, [50*um, 200*um]), 
+#     ([0,4], False, 70 + 90,False), ([0,6], False, 70 + 90, False), ([0,9], False, 70 + 90, False),# ([0,10], False, 70 + 90), ([0,8], False, 70 + 90)
+# ]
+
+# 2201
 modelist = [
-    ([0,0], False, 0), ([0,1], False, 155 - 90), 
-    ([0,4], False, 70 + 90), ([0,6], False, 70 + 90), ([0,9], False, 70 + 90),# ([0,10], False, 70 + 90), ([0,8], False, 70 + 90)
+    ([0,0], False, 0, False), ([0,1], False, 155 - 90, [50*um, 200*um]), 
+    ([0,4], False, 70 + 90,False), ([0,6], False, 70 + 90, False), ([0,9], False, 70 + 90, False), ([0,10], False, 70 + 90, False), #  ([0,8], False, 70 + 90)
 ]
 
 # modelist = [

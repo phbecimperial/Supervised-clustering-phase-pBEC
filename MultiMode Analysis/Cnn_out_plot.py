@@ -15,6 +15,12 @@ if __name__ == '__main__':
 
     plt.style.use(['science', 'no-latex'])
 
+    plt.rcParams.update({
+        'figure.figsize': [7.2, 7.2],
+        'font.size': 12,
+        'figure.dpi': 100,
+        'savefig.dpi': 300
+    })
 
     modelist = [
     ([0,0], False, 0), ([0,1], False, 155 - 90), 
@@ -37,12 +43,12 @@ if __name__ == '__main__':
     for i, file in enumerate(files):
         
         split_file1 = file.split(sep)
-        print(split_file1)
+        # print(split_file1)
         image = cv2.imread(file)
 
 
         split_file = split_file1[-1].split('_')
-        print(split_file)
+        # print(split_file)
         powers.append(float(split_file[4]))
         lengths.append(float(split_file[5]))
         int_times.append(float(split_file[3]))
@@ -65,7 +71,7 @@ if __name__ == '__main__':
 
     # label_files = glob('Apr_9_predicted_labels_*.pkl')
 
-    with open('Apr_20_CNN_out.pkl', 'rb') as f:
+    with open('Apr_22_CNN_out.pkl', 'rb') as f:
         outs, preds = pkl.load(f)
 
     label_list = np.unique(preds, axis=0)
@@ -81,25 +87,34 @@ if __name__ == '__main__':
 
     
     # plt.show()
-
-    fig, axes, gs = power_length_analysis.grid_plot(outs.shape[1],outs.shape[1]//2,2, 0.3)
+    fig = plt.figure(figsize=[7.2, 4])
+    fig, axes, gs = power_length_analysis.grid_plot(outs.shape[1],outs.shape[1]//2,2, 0.3, fig = fig)
 
     fig.supxlabel('$\lambda$ ($nm$)')
     fig.supylabel('Pump power $(W)$')
 
     for i in range(outs.shape[1]):
         
-        color = spect_map((i+1)/(outs.shape[1]+1))
+        # color = spect_map((i+1)/(outs.shape[1]+1))
+
+        # color = 'black'
 
         mode_prob = outs[:,i,0]
 
-        power_length_analysis.plot_2d_stat_hist(data['Lengths'][stim_mask],
+        # mode_prob = np.where(mode_prob > 0.5, mode_prob, np.nan)
+        # mode_prob = mode_prob ** 2
+
+        _,_, plot = power_length_analysis.plot_2d_stat_hist(data['Lengths'][stim_mask],
                                                 data['Powers'][stim_mask],
                                                 mode_prob, [940,960],
-                                                [min(data['Powers']), max(data['Powers'])], color,
+                                                [min(data['Powers']), max(data['Powers'])], cmap='Spectral_r',
                                                 fig = fig, ax = axes[i])
         
         axes[i].set_title(modelist[i][0])
-    plt.show()
+    
+    cbax = plt.subplot(gs[1])
+    plt.colorbar(mappable=plot,cax=cbax, cmap = 'Spectral_r', label = 'Likelihood', boundaries = np.linspace(0,1,100,endpoint=False))
 
+    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN_likelihood.png')
+    plt.show()
 

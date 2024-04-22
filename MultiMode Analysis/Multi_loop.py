@@ -85,7 +85,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
             if (correct/total) > max(history['val_accuracy'], default=0):
-                torch.save(model, r'MultiMode Analysis\Models\Apr2001_Res_Class_' + str(label) + '.pt', pkl)
+                torch.save(model, r'MultiMode Analysis\Models\Apr22_Res_Class_' + str(label) + '.pt', pkl)
                 # del model
 
 
@@ -162,7 +162,6 @@ if __name__ == "__main__":
             pkl.dump(history, f)
 
         del model
-
 
 
 
