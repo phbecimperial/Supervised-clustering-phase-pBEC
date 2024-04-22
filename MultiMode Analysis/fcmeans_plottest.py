@@ -17,10 +17,10 @@ import matplotlib.ticker as ticker
 
 if __name__ == '__main__':
 
-    plt.style.use(['science', 'no-latex'])
+    plt.style.use(['science', 'ieee', 'no-latex'])
 
     plt.rcParams.update({
-        'figure.figsize': [7.2, 7.2],
+        'figure.figsize': [6.3, 6.3],
         'font.size': 12,
         'figure.dpi': 100,
         'savefig.dpi': 300
@@ -111,15 +111,15 @@ if __name__ == '__main__':
 
     print([min(data['Lengths']), max(data['Lengths'])])
 
-    num_clusters = 7
+    num_clusters = 5
 
-    membership_mat = Meta_classifier.quick_fcmeans(features, num_clusters = num_clusters, m = 1, return_matrix= True)
+    membership_mat = Meta_classifier.quick_fcmeans(features, num_clusters = num_clusters, m = 4, return_matrix= True)
 
 
     numrows = 2
     numcols = membership_mat.shape[0]//numrows
     
-    fig = plt.figure(figsize=[7.2, 4])
+    fig = plt.figure(figsize=[6.3, 4])
 
     fig, axes, gs = power_length_analysis.grid_plot(num_clusters,numcols, numrows, 0.3, fig = fig)
 
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # for i, _ in enumerate(axes):
     #     axes[i].xaxis.set_major_locator(ticker.MultipleLocator(10))
 
-    
+    vs = [np.min(membership_mat), np.max(membership_mat)]
 
     for i, col in enumerate(membership_mat):
         # color = spect_map((i+1)/(membership_mat.shape[0]+1))
@@ -166,11 +166,14 @@ if __name__ == '__main__':
             col,
             [940, 960],
             [min(data['Powers']), max(data['Powers'])],
-            cmap = 'Spectral_r', fig=fig, ax = axes[i]
+            cmap = 'Spectral_r', fig=fig, ax = axes[i], vs = vs
             )
         
         axes[i].set_title(i)
+
     cbax = plt.subplot(gs[1])
-    plt.colorbar(plot, cbax,cmap = 'Spectral_r', label = 'Likelihood', boundaries = np.linspace(0,1,100,endpoint=False))
+    plt.colorbar(plot, cbax,cmap = 'Spectral_r', label = 'Likelihood',)
+
     plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Ind_clusters.png')
     plt.show()
+

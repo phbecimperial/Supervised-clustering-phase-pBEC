@@ -14,23 +14,23 @@ import tqdm
 import gc
 import matplotlib
 #import hdbscan
-import UMAP_utils as uu
+# import UMAP_utils as uu
 import pickle
 from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 
 
 
-plt.style.use(['science','ieee'])
+plt.style.use(['science','ieee', 'no-latex'])
 
 
-#You can supply your own method to get this info
-becpath = r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data\pbec_20240321_003143_62499.0_0.18152103448275864_940.0557861328125_9.0_.png'
-path=r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data'
-files = glob.glob(path+'\*.png')
 
-img_features, wavelengths, pwrs, thermal_wavelengths, thermal_pwrs = uu.load_raw_ims(becpath, files)
-with open(r'C:/Users/natak/OneDrive - Imperial College London/Documents/University/Year 4/MSci Project-r018104/AprData/Apr_2001_features.pkl', 'rb') as f:
-    img_features = pickle.load(f)
+
+def umap2d_V2(features, neighbours, min_dist, embedding_dim = 2):
+    reducer = umap.UMAP(n_neighbors=neighbours, min_dist=min_dist, metric='correlation', densmap=True, n_components=embedding_dim)
+
+    embedding = reducer.fit_transform(features)
+
+    return embedding
 
 
 def umap2d(neighbors, min_dist, embedding_dim=2, kmeans_clusters=5):
@@ -59,6 +59,17 @@ def umap2d(neighbors, min_dist, embedding_dim=2, kmeans_clusters=5):
 
 
 if __name__ == '__main__':
+
+#You can supply your own method to get this info
+    becpath = r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data\pbec_20240321_003143_62499.0_0.18152103448275864_940.0557861328125_9.0_.png'
+    path=r'C:\Users\natak\OneDrive - Imperial College London\Documents\University\Year 4\MSci Project-r018104\AprData\Final_data'
+    files = glob.glob(path+'\*.png')
+
+    img_features, wavelengths, pwrs, thermal_wavelengths, thermal_pwrs = uu.load_raw_ims(becpath, files)
+    with open(r'C:/Users/natak/OneDrive - Imperial College London/Documents/University/Year 4/MSci Project-r018104/AprData/Apr_2001_features.pkl', 'rb') as f:
+        img_features = pickle.load(f)
+
+
     embedding, labels = umap2d(16, 0, embedding_dim=2, kmeans_clusters=8)
 
     #Check labels are the same length

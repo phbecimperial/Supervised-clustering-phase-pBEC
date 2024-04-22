@@ -86,7 +86,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10, fig = None):
         gsp = gridspec.GridSpecFromSubplotSpec(nrows = nrows, ncols=ncols, hspace=0.4, subplot_spec=gs[0])
 
         for i in range(ncols*2):
-            axes.append(fig.add_subplot(gsp[i//ncols,i%ncols], title = i))
+            axes.append(fig.add_subplot(gsp[i//ncols,i%ncols]))
             if i % ncols != 0:
                 axes[i].set_yticklabels([])
             if i//ncols == 0:
@@ -111,7 +111,9 @@ def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10, fig = None):
     
     return fig, axes, gs
 
-def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color = None, cmap = None, fig = None, ax = None, to_alpha = False):
+def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, 
+                      color = None, cmap = None, fig = None, ax = None, to_alpha = False,
+                      vs = [0,1]):
 
     # density, xedges, yedges = np.histogram2d(data_x, 
     #                                data_y,
@@ -146,7 +148,7 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, color = None, cm
 
     plot = ax.imshow(statistic.T, 
             extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-            aspect='auto', cmap=cust_cmap, origin='lower')
+            aspect='auto', cmap=cust_cmap, origin='lower', vmin = vs[0], vmax = vs[1])
 
     # plt.imshow(statistic.T, interpolation='bicubic',
     #            interpolation_stage='rgba', origin='lower', 
@@ -334,22 +336,7 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
               aspect='auto', origin='lower', alpha=statistic_alpha.T)
 
 
-
-
-if __name__ == '__main__':
-
-    with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
-        files = pkl.load(f)
-
-    # bec_crop_centre(r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\20240321\pbec_20240321_000118_7814.0_0.12576051724137932_941.7710571289062_7.275862068965518_.png",
-    #                 files, (220,220), 
-    #                 root = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240321")
-
-
-    stim_files, stim_mask = select_files.select_stimulated(files, 50)
-
-
-
+def data_dict(files):
     powers = []
     lengths = []
     int_times = []
@@ -358,12 +345,12 @@ if __name__ == '__main__':
     for i, file in enumerate(files):
         
         split_file1 = file.split(sep)
-        print(split_file1)
+        # print(split_file1)
         image = cv2.imread(file)
 
 
         split_file = split_file1[-1].split('_')
-        print(split_file)
+        # print(split_file)
         powers.append(float(split_file[4]))
         lengths.append(float(split_file[5]))
         int_times.append(float(split_file[3]))
@@ -380,6 +367,23 @@ if __name__ == '__main__':
         'Images': np.array(images)
     }
 
+    return data
+
+if __name__ == '__main__':
+
+    with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
+        files = pkl.load(f)
+
+    # bec_crop_centre(r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\20240321\pbec_20240321_000118_7814.0_0.12576051724137932_941.7710571289062_7.275862068965518_.png",
+    #                 files, (220,220), 
+    #                 root = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240321")
+
+
+    stim_files, stim_mask = select_files.select_stimulated(files, 50)
+
+
+
+    data = data_dict(files)
 
     data['PCA_Length'] = fit_pca(data['Lengths'], data['Pcas'])
 

@@ -211,7 +211,7 @@ def quick_kmeans(features, num_clusters):
 
 def quick_fcmeans(features, num_clusters, m = 1.5, return_matrix = False):
 
-    fcm = FuzzyKMeans(k=num_clusters, m=1.5)
+    fcm = FuzzyKMeans(k=num_clusters, m=m)
     fcm.fit(features)
     fuzzy_membership_matrix = fcm.fuzzy_labels_
     fuzzy_membership_matrix = fuzzy_membership_matrix.T

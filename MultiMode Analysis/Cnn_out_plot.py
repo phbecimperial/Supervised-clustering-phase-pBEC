@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     
     # plt.show()
-    fig = plt.figure(figsize=[7.2, 4])
+    fig = plt.figure(figsize=[6.3, 4])
     fig, axes, gs = power_length_analysis.grid_plot(outs.shape[1],outs.shape[1]//2,2, 0.3, fig = fig)
 
     fig.supxlabel('$\lambda$ ($nm$)')
