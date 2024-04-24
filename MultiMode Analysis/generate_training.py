@@ -14,10 +14,17 @@ from scipy.ndimage import rotate, gaussian_filter, zoom, shift
 from scipy.fft import fft2, fftshift
 import cv2 as cv
 from modes import mode_func
+from astropy.convolution import convolve, Gaussian2DKernel, TrapezoidDisk2DKernel
 from LightPipes import * 
 from tqdm import tqdm
 import torch
 from glob import glob
+
+def sigmoid(x, k, c):
+    return 1/(1+np.exp(-(x - c) / k))
+
+def quick_norm(x):
+    return (x - np.min(x)) / (np.max(x) - np.min(x))
 
 def noise_shift(im, scale):
     sh = im.shape
@@ -59,17 +66,38 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
                 w = np.random.random(1)*(max(mode[3]) - min(mode[3])) + min(mode[3])
 
             addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
+
+            to_squash = quick_norm(Intensity(addbeam))
+
+            if not (mode[0][0] == mode[0][1] == 0):
+                to_squash = zoom(to_squash, [np.random.randint(75,100)/100,1])
+            
+            to_squash = to_squash[:,int((to_squash.shape[1] - to_squash.shape[0])/2):int((to_squash.shape[1] + to_squash.shape[0])/2)]
+
+            trap = TrapezoidDisk2DKernel(np.random.randint(1,15), np.random.randint(15, 500)/100,)
+            # trap = TrapezoidDisk2DKernel(10, 0.0000)
+            # print(trap.shape)
+
+            to_squash = convolve(to_squash, trap, boundary= None)
+
+            gsize = np.random.randint(20, 100)
+            gaus = Gaussian2DKernel(gsize, gsize, x_size = to_squash.shape[0], y_size = to_squash.shape[1])._array
+            to_squash = to_squash*gaus
+
+            addbeam.field = zoom(to_squash, [dim/to_squash.shape[0],dim/to_squash.shape[1]])
+
+
             if mode[2] is not False:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-15,15), reshape=False)
             else:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
-            addbeam = Normal(addbeam)
+            addbeam.field = quick_norm(addbeam.field)
             addbeam = IntAttenuator(addbeam, amp)
 
-            addbeam.field = Intensity(addbeam)
+            # addbeam.field = Intensity(addbeam)
             beam.field += addbeam.field
-        beam = Normal(beam)
+        # beam = Normal(beam)
 
         beam.field = np.roll(np.array(beam.field), int(shifts[0]), 0)
         beam.field = np.roll(np.array(beam.field), int(shifts[1]), 1)
@@ -93,31 +121,33 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # beam = Normal(beam)
         # beam = Fresnel(beam, z=0.2*cm)
 
-        for j in range(np.random.randint(min(spec_num), max(spec_num))):
-            beam = CircScreen(beam, R = min(spec_rad) + np.random.random()*np.diff(spec_rad)[0],
-                                x_shift=np.random.random()* 4 * w - 2 * w,
-                                y_shift=np.random.random()* 4 * w - 2* w)
+        # for j in range(np.random.randint(min(spec_num), max(spec_num))):
+        #     beam = CircScreen(beam, R = min(spec_rad) + np.random.random()*np.diff(spec_rad)[0],
+        #                         x_shift=np.random.random()* 4 * w - 2 * w,
+        #                         y_shift=np.random.random()* 4 * w - 2* w)
 
         beam = Forvard(beam, z=0.03*cm)
 
         aperture_radius = w + np.random.random()*size
         aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
         #beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
-        im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
+        # im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
-        im = Intensity(beam)/np.max(Intensity(beam))
-        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,10))
-
+        im = quick_norm(Intensity(beam))
+        
+        im = sigmoid(im, 0.1, 0.1)
+        im = quick_norm(im)
+        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,20))
         im_max = np.max(im)
-        im += im * np.random.random(im.shape)/10 + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
+        im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
-        im = 255 * (im + np.min(im)) / (np.max(im) + np.min(im))
+        im = 255 * quick_norm(im)
 
         im_mid = int(im.shape[0]/2)
         im_crop = int(im.shape[0]/4)
         crop_im = im[im_mid - im_crop:im_mid + im_crop, im_mid - im_crop:im_mid + im_crop]
 
-        im = zoom(crop_im, 224/im.shape[0])
+        im = zoom(crop_im, 224/(im.shape[0]/2))
         im = np.round(im, decimals=1) / 255
 
 
@@ -195,8 +225,8 @@ def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1,
 
 # 2201
 modelist = [
-    ([0,0], False, 0, False), ([0,1], False, 155 - 90, [50*um, 200*um]), 
-    ([0,4], False, 70 + 90,False), ([0,6], False, 70 + 90, False), ([0,9], False, 70 + 90, False), ([0,10], False, 70 + 90, False), #  ([0,8], False, 70 + 90)
+    ([0,0], False, 0, [150*um, 250*um]), ([0,1], False, 155 - 90, False), 
+    ([0,4], False, 70 + 90,False), ([0,6], False, 70 + 90, False), ([0,9], False, 70 + 90, False), # ([0,10], False, 70 + 90, False), #  ([0,8], False, 70 + 90)
 ]
 
 # modelist = [
@@ -212,4 +242,4 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Test Images'
     num_threads = 2
-    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [100*um, 210*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [150*um, 220*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)

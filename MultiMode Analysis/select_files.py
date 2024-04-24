@@ -5,6 +5,7 @@ import cv2
 from tqdm import tqdm
 import matplotlib
 import matplotlib.pyplot as plt
+import power_length_analysis
 
 def open_img_files(t_stamps: list[str],  root_dir: str):
 
@@ -101,17 +102,23 @@ def plot_line(ax, line, line_params:list[float], height: float, points: list[lis
 
 
 if __name__ == '__main__':
-    t_stamps = ['20240320_213246', '20240321_141756']
-    #root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files"
+    # t_stamps = ['20240320_213246', '20240321_141756'] # mega scan
+    # t_stamps = ['20240319_205708', '20240320_022331'] # alingned scan
+    # root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files" # Use for open img files
     
-    root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240321"
+    root_dir = r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240321" # use for glob
     # fs = open_img_files(t_stamps, root_dir)
     
+    # power_length_analysis.bec_crop_centre(
+    #     r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\20240319\pbec_20240319_214852_15625.0_0.12545994226530613_949.474853515625_-1.1538461538461537_.png",
+    #     fs, [300,300],
+    #     r"C:\Users\Pouis\OneDrive - Imperial College London\202403_link - Photon BEC's files\Cropped_Images\20240319"
+    #     )
 
     fs = np.array(glob(root_dir + r'\*.png'))
 
-    rs, _ = select_stimulated(fs, 50)
-    print(rs)
+    rs, stim_mask = select_stimulated(fs, 50)
+    # print(rs)
 
     with open(r'MultiMode Analysis\relavent_files.pkl', 'wb') as f:
         pkl.dump(fs ,f)
@@ -119,8 +126,26 @@ if __name__ == '__main__':
     with open(r'MultiMode Analysis\stim_files.pkl', 'wb') as f:
         pkl.dump(rs,f)
 
+
+    # with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
+    #     fs = pkl.load(f)
+
+    # rs, stim_mask = select_stimulated(fs, 50)
+
+    # data = power_length_analysis.data_dict(fs)
     
-    line_files, line, line_params, _ = select_line(rs, [[945, 0.2], [950,0.12]], 0.05)
+    # # power_length_analysis.plot_2dhist(data['Lengths'][stim_mask], data['Powers'][stim_mask], [940,960], 
+    # #                                   [min(data['Powers']), max(data['Powers'])], 'red')
+    # # power_length_analysis.plot_2dhist(data['Lengths'][np.invert(stim_mask)], data['Powers'][np.invert(stim_mask)], [940,960], 
+    # #                                   [min(data['Powers']), max(data['Powers'])], 'blue')
+
+    # data['PCA_Length'] = power_length_analysis.fit_pca(data['Lengths'], data['Pcas'])
+
+    # plt.scatter(data['Lengths'], data['PCA_Length'])
+
+    # # plt.scatter(data['Pcas'][stim_mask], data['Powers'][stim_mask])
+    # plt.show()
+    # # line_files, line, line_params, _ = select_line(rs, [[945, 0.2], [950,0.12]], 0.05)
 
     
 

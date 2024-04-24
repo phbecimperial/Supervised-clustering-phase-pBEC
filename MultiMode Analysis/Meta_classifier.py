@@ -17,6 +17,8 @@ from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 import cv2
 from scipy.ndimage import zoom
 
+def sigmoid(x, k, c):
+    return 1/(1+np.exp(-(x - c) / k))
 
 # Load centroids and membership values from file
 
@@ -63,7 +65,7 @@ def Kmeans_no_CNN(files, num_clusters, powers, lengths):
     return kmeans.labels_, None
 
 
-def predict_full_output(files, phases, root):
+def predict_full_output(files, phases, root, sigm = False):
 
     print(files)
     mod_files = glob(root + r'*.pt')
@@ -84,14 +86,21 @@ def predict_full_output(files, phases, root):
             for i in range(phases):
 
                 model = torch.load(mod_files[i])
-
                 transform = v2.Compose([v2.ToTensor(), 
                                         v2.Resize((224,224), antialias=True), 
                                         v2.Normalize((0.5,), (0.5,))])
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
-                image = Image.open(f)
+                if sigm:
+                    image = cv2.imread(f,0)
+                    image = (image - np.min(image))/(np.max(image) - np.min(image))
+                    image = sigmoid(image, 0.1, 0.1)
+                    image = np.array(image, np.float32)
+
+                else:
+                    image = Image.open(f)
+                
                 # Apply transformations
                 input_image = transform(image)
                 input_image = input_image.unsqueeze(0)
@@ -116,7 +125,7 @@ def predict_full_output(files, phases, root):
     return x, preds
 
 
-def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
+def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, sigm = False):
 
     print(files)
 
@@ -145,7 +154,15 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None):
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
-                image = Image.open(f)
+                if sigm:
+                    image = cv2.imread(f,0)
+                    image = (image - np.min(image))/(np.max(image) - np.min(image))
+                    image = sigmoid(image, 0.01, 0.1)
+                    image = np.array(image, np.float32)
+
+
+                else:
+                    image = Image.open(f)
                 # Apply transformations
                 input_image = transform(image)
                 input_image = input_image.unsqueeze(0)
@@ -313,32 +330,32 @@ if __name__ == '__main__':
     powers = np.array(powers)
     lengths = np.array(lengths)
 
-    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr22'
+    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr2401'
 
-    features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths)
+    features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths,True)
 
-    with open('Apr_22_POWLEN_features.pkl', 'wb') as f:
+    with open('Apr_2401_POWLEN_features.pkl', 'wb') as f:
         pickle.dump(plfeatures, f)
 
-    with open('Apr_22_features.pkl', 'wb') as f:
+    with open('Apr_2401_features.pkl', 'wb') as f:
         pickle.dump(features, f)
  
-    out, preds = predict_full_output(files, 5, model_root)
+    out, preds = predict_full_output(files, 5, model_root, True)
 
-    with open('Apr_22_CNN_out.pkl', 'wb') as f:
+    with open('Apr_2401_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
 
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
 
-    with open('Apr_22_features.pkl', 'rb') as f:
+    with open('Apr_2401_features.pkl', 'rb') as f:
         features = pickle.load(f)
 
     # labels, alphas = quick_fcmeans(features, num_clusters= 6, m= 1.5)
 
     # print(labels, alphas)
 
-    for i in range(5,15):
+    for i in range(6,14):
         
         # labels1, _ = quick_kmeans(features1, i)
         labels2, _ = quick_kmeans(features, i)
@@ -347,7 +364,7 @@ if __name__ == '__main__':
         # with open(f'Apr_20_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
         #     pickle.dump((labels1), f)
 
-        with open(f'Apr_22_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_2401_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels2), f)
 
 

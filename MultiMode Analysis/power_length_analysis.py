@@ -1,6 +1,7 @@
 import os
 from os.path import sep
 from glob import glob
+import matplotlib.colors
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -9,6 +10,7 @@ from scipy.ndimage import center_of_mass
 from scipy.stats import binned_statistic_2d
 import Meta_classifier
 import matplotlib
+import scienceplots
 import select_files
 import matplotlib.gridspec as gridspec 
 import matplotlib.ticker as ticker
@@ -38,7 +40,7 @@ def crop_save_image(files,size,root):
     ##return image_crop
 
 
-def bec_crop_centre(bec_file: str, files: list[str], size: int, root: str):
+def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str):
     """
     New image cropping fn, parse in file of bec image and will take as center for all other images.
     V simple don't know why I didn't think of this before
@@ -75,25 +77,25 @@ def fit_pca(lengths, pcas):
     return fit(pcas)
 
 
-def grid_plot(nplots ,ncols, nrows, wspace, tick_spacing = 10, fig = None):
+def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig = None):
     if fig is None:
-        fig = plt.figure(figsize=[7.2, 3.6])
+        fig = plt.figure(figsize=[6.3, 4])
     axes = []
 
     gs = gridspec.GridSpec(nrows=1, ncols=2, wspace=0.08, width_ratios=[0.96, 0.04])
 
-    if nplots % 2 == 0:
-        gsp = gridspec.GridSpecFromSubplotSpec(nrows = nrows, ncols=ncols, hspace=0.4, subplot_spec=gs[0])
+    if nplots % nrows == 0:
+        gsp = gridspec.GridSpecFromSubplotSpec(nrows = nrows, ncols=ncols, hspace=hspace, subplot_spec=gs[0])
 
-        for i in range(ncols*2):
+        for i in range(nplots):
             axes.append(fig.add_subplot(gsp[i//ncols,i%ncols]))
             if i % ncols != 0:
                 axes[i].set_yticklabels([])
-            if i//ncols == 0:
+            if i < nplots - ncols:
                 axes[i].set_xticklabels([])
 
     else:
-        gsp = gridspec.GridSpecFromSubplotSpec(nrows=nrows, ncols=1, hspace=0.4, subplot_spec=gs[0])
+        gsp = gridspec.GridSpecFromSubplotSpec(nrows=nrows, ncols=1, hspace=hspace, subplot_spec=gs[0])
         gs01 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=ncols, subplot_spec=gsp[1])
         gs02 = gridspec.GridSpecFromSubplotSpec(nrows = 1, ncols=(nplots - ncols), 
                                                 subplot_spec=gsp[0], wspace=wspace)
@@ -157,14 +159,16 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
 
     return fig, ax, plot
 
-def plot_2dhist(data_x, data_y, x_range, y_range, color):
+def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = None):
     density, _, _ = np.histogram2d(data_x, 
                                    data_y,
-                                   bins = 12, density=True, 
+                                   bins = bins, density=True, 
                                    range=[x_range,y_range])
     
     density = density/np.max(density)
 
+    if fig is None:
+        fig, ax = plt.subplots(figsize = [6.6, 6.3])
     
     cust_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('cmap',[color,color],256)
     
@@ -174,14 +178,18 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color):
     alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
     cust_cmap._lut[:,-1] = alphas
 
-    # plt.imshow(density.T, 
-    #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-    #            aspect='auto', cmap=cust_cmap, origin='lower')
-
-    plt.imshow(density.T, interpolation='bicubic',
-               interpolation_stage='rgba', origin='lower', 
+    plot = ax.imshow(density.T, 
                extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-               aspect='auto', cmap=cust_cmap, vmin=0, vmax=1)
+               aspect='auto', cmap=cust_cmap, origin='lower', vmin = 0, vmax = 1)
+    
+    
+    return fig, ax, plot
+
+    # plt.imshow(density.T, interpolation='bicubic',
+    #            interpolation_stage='rgba', origin='lower', 
+    #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+    #            aspect='auto', cmap=cust_cmap, vmin=0, vmax=1)
+    
 
 def nan_replacer(array):
     no_nan = np.argwhere(~np.isnan(array))
@@ -254,12 +262,45 @@ def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bi
         plt.imshow(fake_bin, cmap = cust_cmap, extent=x_range + y_range, aspect='auto', origin='lower')
         plt.title(label)
     plt.show()
+
+
+def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None):
+        if fig is None:
+            fig, ax = plt.subplots(figsize = [6.3,5])
+
+        spect_map = matplotlib.colormaps[cmap]
+
+        for i in np.unique(cluster_labels, axis=0):
+            mask = cluster_labels  == i
+            color = spect_map((i+1)/(max(np.unique(cluster_labels)+1)))
+
+            fig, ax, plot = plot_2dhist(data_x[mask],
+                        data_y[mask],
+                        x_range,
+                        y_range,
+                        color, bins, fig, ax
+                        )
+            
+            ax.scatter(data_x[mask],
+                        data_y[mask], color = color, zorder = 100, label = None, s = s)
+
+        num_clusters = np.max(cluster_labels) + 1
         
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 1)
+        cbarmap = matplotlib.colormaps['Spectral']
+        my_cmap = cbarmap(np.arange(cbarmap.N))
+        my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
 
+        cbarmap = matplotlib.colors.ListedColormap(my_cmap)
 
+        mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
+        cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(stop = num_clusters + 1))
+        tick_locs = (np.arange(num_clusters) + 0.5)*(num_clusters)/num_clusters
+        cbar.set_ticks(tick_locs)
+        cbar.set_ticklabels(np.arange(num_clusters))
 
+        return fig, ax, plot, cbar
 
-        
 
 def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
     """
@@ -371,6 +412,15 @@ def data_dict(files):
 
 if __name__ == '__main__':
 
+    plt.style.use(['science', 'ieee', 'no-latex'])
+
+    plt.rcParams.update({
+        'figure.figsize': [6.3, 6.3],
+        'font.size': 12,
+        'figure.dpi': 100,
+        'savefig.dpi': 300
+    })
+
     with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
         files = pkl.load(f)
 
@@ -388,13 +438,19 @@ if __name__ == '__main__':
     data['PCA_Length'] = fit_pca(data['Lengths'], data['Pcas'])
 
 
-    spect_map = matplotlib.cm.get_cmap('brg')
+    spect_map = matplotlib.cm.get_cmap('Spectral')
 
-    label_files = glob('Apr_2001_predicted_labels_*.pkl')
+    label_files = np.array(glob('Apr_23_predicted_labels_*.pkl'))
+    cluster_num = np.array([int(i.split('_')[-1][:-4]) for i in label_files])
 
-    for file in label_files:
+    label_files = label_files[np.argsort(cluster_num)]
 
-        # with open('Apr_2_NoPow_predicted_labels_9.pkl', 'rb') as f:
+    fig = plt.figure(figsize=[6.3, 5])
+    fig, axes, gs = grid_plot(len(label_files), 4, 2, 0.1, 0.15,fig = fig)
+
+    for i, file in enumerate(label_files):
+
+        # with open('Apr_23_predicted_labels_7.pkl', 'rb') as f:
         #     cluster_labels = pkl.load(f)
 
         # with open('Apr_2_CNN_out.pkl', 'rb') as f:
@@ -405,58 +461,58 @@ if __name__ == '__main__':
         
         # cluster_labels, _ = Meta_classifier.quick_kmeans(data['Images'][stim_mask], 6)
         # cluster_labels = preds
+        
+        all_cluster_plot(
+            np.max(cluster_labels), cluster_labels, 
+            data['Lengths'][stim_mask], data['Powers'][stim_mask],
+            'Spectral', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 0.3, fig, 
+            axes[i]
+            )
+        
+        axes[i].set_title(f'{np.sort(cluster_num)[i]} clusters')
+
+    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\All_Kmeans.png')
+    plt.show()
 
 
-        for i in np.unique(cluster_labels, axis=0):
-            mask = cluster_labels  == i
-            color = spect_map((i+1)/(max(np.unique(cluster_labels)+1)))
-
-            plot_2dhist(data['Lengths'][stim_mask][mask],
-                        data['Powers'][stim_mask][mask],
-                        [min(data['Lengths']), max(data['Lengths'])],
-                        [min(data['Powers']), max(data['Powers'])],
-                        color
-                        )
-            
-            plt.scatter(data['Lengths'][stim_mask][mask],
-                        data['Powers'][stim_mask][mask], color = color, zorder = 100, label = None)
 
 
-        l_points = [[950, 0.15], [960,0.2]]
-        h = 0.015
 
-        line_files, line, line_params, line_lengths = select_files.select_line(stim_files, 
-                                                                            l_points, h)
+    l_points = [[950, 0.15], [960,0.2]]
+    h = 0.015
 
-
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        # plt.grid(c='black')
-        # clusters = file.split('_')[-1].split('.')[0]
-
-        plt.title(f'Num Clusters: {len(np.unique(cluster_labels))}')
-        ax = plt.gca()
-
-        ax = select_files.plot_line(ax, line, line_params, h, l_points)
-
-        for i in ax.spines:
-            ax.spines[i].set_color('w') 
-        ax.tick_params(color = 'w')
-        ax.yaxis.label.set_color('w')
-        ax.xaxis.label.set_color('w')
-        plt.ylabel('Pump Power (W)')
-        plt.xlabel('Cavity Length (nm)')
-
-        plt.tight_layout()
-
-        plt.show()
+    line_files, line, line_params, line_lengths = select_files.select_line(stim_files, 
+                                                                        l_points, h)
 
 
-        fig, axes = select_files.show_line_images(data['Files'][stim_mask],
-                                    line_files, 8,
-                                    cluster_labels, log = False, cmap='brg')
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # plt.grid(c='black')
+    # clusters = file.split('_')[-1].split('.')[0]
 
-        plt.show()
+    plt.title(f'Num Clusters: {len(np.unique(cluster_labels))}')
+    ax = plt.gca()
 
-        plt.scatter(data['Lengths'][np.invert(stim_mask)], data['Powers'][np.invert(stim_mask)], color = 'grey')
-        plt.scatter(data['Lengths'][stim_mask], data['Powers'][stim_mask], c =cluster_labels, cmap='tab10')
-        plt.show()
+    ax = select_files.plot_line(ax, line, line_params, h, l_points)
+
+    # for i in ax.spines:
+    #     ax.spines[i].set_color('w') 
+    # ax.tick_params(color = 'w')
+    # ax.yaxis.label.set_color('w')
+    # ax.xaxis.label.set_color('w')
+    plt.ylabel('Pump Power (W)')
+    plt.xlabel('Cavity Length (nm)')
+
+    # plt.tight_layout()
+
+    plt.show()
+
+
+    fig, axes = select_files.show_line_images(data['Files'][stim_mask],
+                                line_files, 8,
+                                cluster_labels, log = False, cmap='brg')
+
+    plt.show()
+
+    plt.scatter(data['Lengths'][np.invert(stim_mask)], data['Powers'][np.invert(stim_mask)], color = 'grey')
+    plt.scatter(data['Lengths'][stim_mask], data['Powers'][stim_mask], c =cluster_labels, cmap='tab10')
+    plt.show()
