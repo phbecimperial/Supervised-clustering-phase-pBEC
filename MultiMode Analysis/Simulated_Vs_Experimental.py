@@ -62,7 +62,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             else:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
-            addbeam = Normal(addbeam)
+            addbeam.field = quick_norm(addbeam.field)
             addbeam = IntAttenuator(addbeam, mode[4])
 
             addbeam.field = Intensity(addbeam)
@@ -98,24 +98,24 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
         # beam = Forvard(beam, z=0.03*cm)
 
-        aperture_radius = w + np.random.random()*size
-        aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
+        # aperture_radius = w + np.random.random()*size
+        # aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
         #beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         # im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
-        im = Intensity(beam)/np.max(Intensity(beam))
+        im = quick_norm(Intensity(beam))
 
         gaus = Gaussian2DKernel(sz, sz,x_size = im.shape[0], y_size = im.shape[1])._array
         gaus /= np.max(gaus)
         im *= gaus
-        im = im/np.max(im)
+        # im = im/np.max(im)
         # im = skew_gauss(im, 100, 0.001, 5)
         # im = (np.sin(im*np.pi/2 - np.pi/2))**2
         # im = noise_shift(im, (im.shape[0]/500)*10)
         # im = gaussian_filter(im, 6)
         # im = np.exp(10*(im+1))
         im = noise_shift(im, (im.shape[0]/500)*10)
-        im_max = np.max(im)
+        # im_max = np.max(im)
         # im += im * np.random.random(im.shape)/10 + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * quick_norm(im)
@@ -154,33 +154,34 @@ if __name__ == '__main__':
     # plt.show()
 
     bright_list = [
-        40, 25, 47, 100
+        40, 35, 47, 100
     ]
     blur_list = [
-        [9,0.7], [10,0.2], [15,3], [1,100]
+        [9,0.7], [10,10], [15,3], [1,100]
     ]
     modes_list = [
         [([0,1], False ,160 - 90, 200*um, 0.05, 1), ([0,9], False ,70 + 90, 200*um, 1, 0.6)],
-        [([0,1], False ,130 - 90, 200*um, 0.01, 1), ([0,4], False ,50 + 90, 200*um, 1, 0.4)],
+        [([0,1], False , 30 , 200*um, 0.2, 1), ([0,4], False ,50 + 90, 200*um, 1, 0.7)],
         [([0,4], False , -27, 200*um, 1, 0.4), ([0,1], False , 60, 200*um, 0.05, 1), ([0,9], False , -23, 200*um, 1, 0.7), ([0,6], False , -26, 200*um, 1, 0.4)],
-        [([0,0], False, False, 300*um, 1, 1)]
+        [([0,0], False, False, 280*um, 1, 1)]
     ]
 
-    sz = bright_list[3]
-    bl = blur_list[3]
+    sz = bright_list[1]
+    bl = blur_list[1]
 
 
-    im = cv2.imread(root_dir + sep + 'Crop' + file_list[2], 0)
-    im2 = gererate_data(1, 2500*um, 500, modes_list[2], [100*um, 210*um], fringe_size=[0.3, 0.6],  mult_las_split=0)[0]
+    im = cv2.imread(root_dir + sep + 'Crop' + file_list[1], 0)
+    im2 = gererate_data(1, 2500*um, 500, modes_list[1], [100*um, 210*um], fringe_size=[0.3, 0.6],  mult_las_split=0)[0]
 
 
     im = sigmoid(quick_norm(im), 0.05, 0.1)
-    im2 = sigmoid(quick_norm(im2), 0.05, 0.01)
+    im2 = sigmoid(quick_norm(im2), 0.05, 0.1)
     im = quick_norm(im)
     im2 = quick_norm(im2)
-    plt.imshow(im)
+    plt.imshow(im2)
     plt.show()
     plt.plot(im2[112])
+    plt.plot(im[112])
     plt.show()
 
 
@@ -208,4 +209,6 @@ if __name__ == '__main__':
         if i == 0:
             axes[i+4].set_ylabel('Training')
     
+    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN plots\TrainingVSExperimental.pdf', format = 'pdf')
     plt.show()
+

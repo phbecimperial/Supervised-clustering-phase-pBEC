@@ -95,7 +95,7 @@ def predict_full_output(files, phases, root, sigm = False):
                 if sigm:
                     image = cv2.imread(f,0)
                     image = (image - np.min(image))/(np.max(image) - np.min(image))
-                    image = sigmoid(image, 0.1, 0.1)
+                    image = sigmoid(image, 0.05, 0.1)
                     image = np.array(image, np.float32)
 
                 else:
@@ -157,7 +157,7 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, 
                 if sigm:
                     image = cv2.imread(f,0)
                     image = (image - np.min(image))/(np.max(image) - np.min(image))
-                    image = sigmoid(image, 0.01, 0.1)
+                    image = sigmoid(image, 0.05, 0.1)
                     image = np.array(image, np.float32)
 
 
@@ -330,25 +330,25 @@ if __name__ == '__main__':
     powers = np.array(powers)
     lengths = np.array(lengths)
 
-    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr2401'
+    model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr2402'
 
     features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths,True)
 
-    with open('Apr_2401_POWLEN_features.pkl', 'wb') as f:
+    with open('Apr_2402_POWLEN_features.pkl', 'wb') as f:
         pickle.dump(plfeatures, f)
 
-    with open('Apr_2401_features.pkl', 'wb') as f:
+    with open('Apr_2402_features.pkl', 'wb') as f:
         pickle.dump(features, f)
  
     out, preds = predict_full_output(files, 5, model_root, True)
 
-    with open('Apr_2401_CNN_out.pkl', 'wb') as f:
+    with open('Apr_2402_CNN_out.pkl', 'wb') as f:
         pickle.dump((out, preds), f)
 
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)
 
-    with open('Apr_2401_features.pkl', 'rb') as f:
+    with open('Apr_2402_features.pkl', 'rb') as f:
         features = pickle.load(f)
 
     # labels, alphas = quick_fcmeans(features, num_clusters= 6, m= 1.5)
@@ -364,7 +364,7 @@ if __name__ == '__main__':
         # with open(f'Apr_20_POWLEN_predicted_labels_{i}.pkl', 'wb') as f:
         #     pickle.dump((labels1), f)
 
-        with open(f'Apr_2401_predicted_labels_{i}.pkl', 'wb') as f:
+        with open(f'Apr_2402_predicted_labels_{i}.pkl', 'wb') as f:
             pickle.dump((labels2), f)
 
 

@@ -17,19 +17,19 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
     num_threads = 14
-    ims = generate_training.generate_data_multithreaded(num_threads, 20000 // num_threads, 2500*um, 400, generate_training.modelist, [180*um, 220*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_training.generate_data_multithreaded(num_threads, 25000 // num_threads, 2500*um, 500, generate_training.modelist, [160*um, 210*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
 
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     classes = len(generate_training.modelist)
-    epochs = 10
+    epochs = 30
     criterion = torch.nn.CrossEntropyLoss()
-    learning_rate = 0.0005
+    learning_rate = 0.0001
     val_split = 0.2
     batch_size = 128
-    best_accuracy = 0.0
+    best_accuracy = 0.0 
 
  
     transform = v2.Compose([v2.ToTensor(), v2.Resize((224,224), antialias=True), v2.Normalize((0.5,), (

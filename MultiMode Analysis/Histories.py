@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pickle as pkl
 
 
-files = glob(r'MultiMode Analysis\Models\Apr23*history*')
+files = glob(r'MultiMode Analysis\Models\Apr2402*history*')
 
 histories = []
 for i in files:

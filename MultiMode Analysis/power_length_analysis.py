@@ -264,7 +264,7 @@ def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bi
     plt.show()
 
 
-def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None):
+def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None, show_cbar = True):
         if fig is None:
             fig, ax = plt.subplots(figsize = [6.3,5])
 
@@ -284,22 +284,26 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
             ax.scatter(data_x[mask],
                         data_y[mask], color = color, zorder = 100, label = None, s = s)
 
-        num_clusters = np.max(cluster_labels) + 1
+        if show_cbar:
+
+            num_clusters = np.max(cluster_labels) + 1
+            
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 1)
+            cbarmap = matplotlib.colormaps[cmap]
+            my_cmap = cbarmap(np.arange(cbarmap.N))
+            my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
+
+            cbarmap = matplotlib.colors.ListedColormap(my_cmap)
+
+            mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
+            cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(stop = num_clusters + 1))
+            tick_locs = (np.arange(num_clusters) + 0.5)*(num_clusters)/num_clusters
+            cbar.set_ticks(tick_locs)
+            cbar.set_ticklabels(np.arange(num_clusters))
+
+            return fig, ax, plot, cbar
         
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 1)
-        cbarmap = matplotlib.colormaps['Spectral']
-        my_cmap = cbarmap(np.arange(cbarmap.N))
-        my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
-
-        cbarmap = matplotlib.colors.ListedColormap(my_cmap)
-
-        mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
-        cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(stop = num_clusters + 1))
-        tick_locs = (np.arange(num_clusters) + 0.5)*(num_clusters)/num_clusters
-        cbar.set_ticks(tick_locs)
-        cbar.set_ticklabels(np.arange(num_clusters))
-
-        return fig, ax, plot, cbar
+        return fig, ax, plot, None
 
 
 def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):

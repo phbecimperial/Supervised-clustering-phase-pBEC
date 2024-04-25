@@ -80,7 +80,7 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
 
             to_squash = convolve(to_squash, trap, boundary= None)
 
-            gsize = np.random.randint(20, 100)
+            gsize = np.random.randint(30, 100)
             gaus = Gaussian2DKernel(gsize, gsize, x_size = to_squash.shape[0], y_size = to_squash.shape[1])._array
             to_squash = to_squash*gaus
 
@@ -134,12 +134,12 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
         im = quick_norm(Intensity(beam))
-        
-        im = sigmoid(im, 0.1, 0.1)
+        im += im * np.random.random(im.shape)/10
+        im = sigmoid(im, 0.05, 0.1)
         im = quick_norm(im)
         im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,20))
         im_max = np.max(im)
-        im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
+        # im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * quick_norm(im)
 
@@ -242,4 +242,4 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Test Images'
     num_threads = 2
-    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [150*um, 220*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_data_multithreaded(num_threads, 10 // num_threads, 2500*um, 500, modelist, [150*um, 210*um], fringe_size=[0.3, 0.6], save=save, mult_las_split=0, save_dir=save_dir)

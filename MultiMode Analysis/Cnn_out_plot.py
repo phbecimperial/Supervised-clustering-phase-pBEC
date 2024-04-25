@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     # label_files = glob('Apr_9_predicted_labels_*.pkl')
 
-    with open('Apr_2401_CNN_out.pkl', 'rb') as f:
+    with open('Apr_2402_CNN_out.pkl', 'rb') as f:
         outs, preds = pkl.load(f)
 
     label_list = np.unique(preds, axis=0)
