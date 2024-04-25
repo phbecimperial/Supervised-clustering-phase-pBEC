@@ -2,6 +2,7 @@ import os
 from os.path import sep
 from glob import glob
 import matplotlib.colors
+import matplotlib.figure
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -41,13 +42,14 @@ def crop_save_image(files,size,root):
 
 
 def add_loss_rate(ax: plt.Axes, abs_path):
+    """_summary_
 
-    # ax2 = ax.twiny()
+    Args:
+        ax (plt.Axes): axes to add thermalisation to
+        abs_path (str): path with interpolated absorption rates
+    """
 
     with open(abs_path, 'rb') as f:
-        absorb = pkl.load(f)
-
-    with open('inter.pkl', 'rb') as f:
         loss_rate = pkl.load(f)
 
     llim, rlim = ax.get_xlim()
@@ -59,7 +61,7 @@ def add_loss_rate(ax: plt.Axes, abs_path):
 
 
     thermalto_x = interp1d(xto_thermal(x), x, fill_value='extrapolate')
-    ax.secondary_xaxis('top', functions=(xto_thermal, thermalto_x), xscale = 'log', label = '$\gamma$')
+    ax.secondary_xaxis('top', functions=(xto_thermal, thermalto_x), xscale = 'log', xlabel = '$\gamma$')
 
     
 
@@ -91,9 +93,18 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
 
 
 def fit_pca(lengths, pcas):
+    """_summary_
+
+    Args:
+        lengths (_type_): _description_
+        pcas (_type_): _description_
+
+    Returns:
+        np.poly1d : _description_
+    """
+    
     # plt.scatter(pcas, lengths)
     # plt.show()
-
     popt = np.polyfit(pcas, lengths, 1)
     fit = np.poly1d(popt)
 
@@ -287,7 +298,8 @@ def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bi
     plt.show()
 
 
-def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None, show_cbar = True):
+def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None, 
+                     show_cbar = True) -> tuple[matplotlib.figure.Figure, plt.Axes, object, object]:
         if fig is None:
             fig, ax = plt.subplots(figsize = [6.3,5])
 
@@ -474,7 +486,23 @@ if __name__ == '__main__':
 
     label_files = label_files[np.argsort(cluster_num)]
 
+    with open('Apr_23_predicted_labels_7.pkl', 'rb') as f:
+        cluster_labels = pkl.load(f)
+
+    fig, ax, _, _ = all_cluster_plot(
+        np.max(cluster_labels), cluster_labels,
+        data['Lengths'][stim_mask], data['Powers'][stim_mask],
+        'tab20b', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 2
+        )
+    add_loss_rate(ax, 'inter.pkl')
+    ax.set_xlabel('$\lambda$ ($nm$)')
+    ax.set_ylabel('Pump Power (W)')
+    plt.show()
+    
+
     fig = plt.figure(figsize=[6.3, 5])
+
+
     fig, axes, gs = grid_plot(len(label_files), 4, 2, 0.1, 0.15,fig = fig)
 
     for i, file in enumerate(label_files):
@@ -494,11 +522,10 @@ if __name__ == '__main__':
         all_cluster_plot(
             np.max(cluster_labels), cluster_labels, 
             data['Lengths'][stim_mask], data['Powers'][stim_mask],
-            'Spectral', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 0.3, fig, 
-            axes[i]
-            )
+            'Spectral', 30, [940,960], [min(data['Powers']), max(data['Powers'])], fig, 
+            axes[i])
         
-        add_loss_rate(axes[i], 'absfunc.pkl')
+        # add_loss_rate(axes[i], 'absfunc.pkl')
         axes[i].set_title(f'{np.sort(cluster_num)[i]} clusters')
 
     plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\All_Kmeans.png')
