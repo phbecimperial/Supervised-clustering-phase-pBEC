@@ -15,7 +15,7 @@ import select_files
 import matplotlib.gridspec as gridspec 
 import matplotlib.ticker as ticker
 from scipy.spatial import KDTree
-from scipy.interpolate import griddata, CloughTocher2DInterpolator
+from scipy.interpolate import griddata, CloughTocher2DInterpolator, interp1d
 
 
 def crop_save_image(files,size,root):
@@ -39,6 +39,29 @@ def crop_save_image(files,size,root):
         print(root + r'\\' + name + '.png')
     ##return image_crop
 
+
+def add_loss_rate(ax: plt.Axes, abs_path):
+
+    # ax2 = ax.twiny()
+
+    with open(abs_path, 'rb') as f:
+        absorb = pkl.load(f)
+
+    with open('inter.pkl', 'rb') as f:
+        loss_rate = pkl.load(f)
+
+    llim, rlim = ax.get_xlim()
+    x = np.linspace(llim, rlim, 2)
+
+    # thermal = absorb(x)/70
+    xto_thermal = lambda y:  loss_rate(y*1e-9)/8e10
+
+
+
+    thermalto_x = interp1d(xto_thermal(x), x, fill_value='extrapolate')
+    ax.secondary_xaxis('top', functions=(xto_thermal, thermalto_x), xscale = 'log', label = '$\gamma$')
+
+    
 
 def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str):
     """
@@ -268,11 +291,12 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
         if fig is None:
             fig, ax = plt.subplots(figsize = [6.3,5])
 
+        num_clusters = np.max(cluster_labels) + 1
         spect_map = matplotlib.colormaps[cmap]
 
-        for i in np.unique(cluster_labels, axis=0):
+        for i, label in enumerate(np.unique(cluster_labels, axis=0)):
             mask = cluster_labels  == i
-            color = spect_map((i+1)/(max(np.unique(cluster_labels)+1)))
+            color = spect_map(((label + 0.5) / num_clusters))
 
             fig, ax, plot = plot_2dhist(data_x[mask],
                         data_y[mask],
@@ -286,9 +310,9 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
 
         if show_cbar:
 
-            num_clusters = np.max(cluster_labels) + 1
             
-            norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 1)
+            
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters)
             cbarmap = matplotlib.colormaps[cmap]
             my_cmap = cbarmap(np.arange(cbarmap.N))
             my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
@@ -296,6 +320,7 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
             cbarmap = matplotlib.colors.ListedColormap(my_cmap)
 
             mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
+
             cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(stop = num_clusters + 1))
             tick_locs = (np.arange(num_clusters) + 0.5)*(num_clusters)/num_clusters
             cbar.set_ticks(tick_locs)
@@ -473,6 +498,7 @@ if __name__ == '__main__':
             axes[i]
             )
         
+        add_loss_rate(axes[i], 'absfunc.pkl')
         axes[i].set_title(f'{np.sort(cluster_num)[i]} clusters')
 
     plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\All_Kmeans.png')
