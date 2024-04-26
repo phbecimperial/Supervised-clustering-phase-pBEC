@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import select_files
 import scienceplots
+from scipy.interpolate import interp1d
 from generate_training import modelist
 import power_length_analysis
 
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 
     # label_files = glob('Apr_9_predicted_labels_*.pkl')
 
-    with open('Apr_2402_CNN_out.pkl', 'rb') as f:
+    with open('Apr_26_CNN_out.pkl', 'rb') as f:
         outs, preds = pkl.load(f)
 
     label_list = np.unique(preds, axis=0)
@@ -67,6 +68,8 @@ if __name__ == '__main__':
     fig.supxlabel('$\lambda$ ($nm$)')
     fig.supylabel('Pump power $(W)$')
 
+    stats = []
+
     for i in range(outs.shape[1]):
         
         # color = spect_map((i+1)/(outs.shape[1]+1))
@@ -78,12 +81,12 @@ if __name__ == '__main__':
         # mode_prob = np.where(mode_prob > 0.5, mode_prob, np.nan)
         # mode_prob = mode_prob ** 2
 
-        _,_, plot = power_length_analysis.plot_2d_stat_hist(data['Lengths'][stim_mask],
+        _,_, plot, stat = power_length_analysis.plot_2d_stat_hist(data['Lengths'][stim_mask],
                                                 data['Powers'][stim_mask],
                                                 mode_prob, [940,960],
                                                 [min(data['Powers']), max(data['Powers'])], cmap='Spectral_r',
-                                                fig = fig, ax = axes[i], vs = vs)
-        
+                                                fig = fig, ax = axes[i], vs = vs, ret_stat=True)
+        stats.append(stat)
         axes[i].set_title(modelist[i][0])
     
     cbax = plt.subplot(gs[1])
@@ -91,4 +94,26 @@ if __name__ == '__main__':
 
     plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN_likelihood.png')
     plt.show()
+
+    for i, stat in enumerate(stats):
+        idx = 0
+        probs = stat[0].T[::-1]
+        # plt.imshow(probs)
+        # plt.show()
+        n_mask = np.isnan(probs[idx])
+        yval = stat[2][idx]
+        
+
+        xs = stat[1][:-1][~n_mask]
+        print(len(xs))
+        x = np.linspace(min(xs),max(xs),100)
+
+        
+        spline = interp1d(xs, probs[idx][~n_mask])
+        plt.plot(x, spline(x), label = modelist[i][0])
+        plt.title(yval)
+    plt.legend()
+    plt.show()
+    
+
 

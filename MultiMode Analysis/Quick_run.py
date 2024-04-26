@@ -17,14 +17,14 @@ if __name__ == '__main__':
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
     num_threads = 14
-    ims = generate_training.generate_data_multithreaded(num_threads, 25000 // num_threads, 2500*um, 500, generate_training.modelist, [160*um, 210*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_training.generate_data_multithreaded(num_threads, 30000 // num_threads, 2500*um, 500, generate_training.modelist, [160*um, 210*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
 
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     classes = len(generate_training.modelist)
-    epochs = 30
+    epochs = 50
     criterion = torch.nn.CrossEntropyLoss()
     learning_rate = 0.0001
     val_split = 0.2
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum = 0)
         model, history = Multi_loop.Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
 
-        with open(r'MultiMode Analysis\Models\Apr2402_Res_Class_' + str(i) + 'history', 'wb') as f:
+        with open(r'MultiMode Analysis\Models\Apr26_Res_Class_' + str(i) + 'history', 'wb') as f:
             pkl.dump(history, f)
 
         del model

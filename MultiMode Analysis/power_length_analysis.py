@@ -149,7 +149,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig
 
 def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, 
                       color = None, cmap = None, fig = None, ax = None, to_alpha = False,
-                      vs = [0,1]):
+                      vs = [0,1], ret_stat = False):
 
     # density, xedges, yedges = np.histogram2d(data_x, 
     #                                data_y,
@@ -157,7 +157,7 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
     #                                range=[x_range,y_range])
     
     
-    statistic, _,_,_ = binned_statistic_2d(data_x, data_y, 
+    statistic, x_edge, y_edge ,_ = binned_statistic_2d(data_x, data_y, 
                                          alphas, bins=30, 
                                          range = [x_range,y_range])
 
@@ -190,6 +190,9 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
     #            interpolation_stage='rgba', origin='lower', 
     #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
     #            aspect='auto', cmap=cust_cmap)
+    
+    if ret_stat:
+        return fig, ax, plot, (statistic, x_edge, y_edge)
 
     return fig, ax, plot
 
