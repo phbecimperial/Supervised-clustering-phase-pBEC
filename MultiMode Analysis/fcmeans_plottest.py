@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 from scipy.stats import binned_statistic_2d
 import matplotlib
+import UMAP as cu
 import matplotlib.pyplot as plt
 import cv2
 import power_length_analysis
@@ -38,82 +39,70 @@ if __name__ == '__main__':
 
 
 
-    powers = []
-    lengths = []
-    int_times = []
-    images = []
-    pcas = []
-    for i, file in enumerate(files):
-        
-        split_file1 = file.split(sep)
-        #print(split_file1)
-        image = cv2.imread(file)
+    data = power_length_analysis.data_dict(files)
 
-
-        split_file = split_file1[-1].split('_')
-        #print(split_file)
-        powers.append(float(split_file[4]))
-        lengths.append(float(split_file[5]))
-        int_times.append(float(split_file[3]))
-        pcas.append(float(split_file[-2]))
-
-
-    data = {
-        'Files': np.array(files),
-        'Powers': np.array(powers),
-        'Lengths': np.array(lengths),
-        'Int_times': np.array(int_times),
-        'Pcas': np.array(pcas)
-    }
+    with open('Apr_26_features.pkl', 'rb') as f:
+        features = pickle.load(f)   
 
 
     data['PCA_Length'] = power_length_analysis.fit_pca(data['Lengths'], data['Pcas'])
 
+    num_clusters = 7
 
 
-    with open('Apr_2001_POWLEN_features.pkl', 'rb') as f:
-        features = pickle.load(f)   
 
-    # labels, alphas = Meta_classifier.quick_fcmeans(features, num_clusters= 5, m= 1)
 
-    # spect_map = matplotlib.cm.get_cmap('brg')
+    labels, alphas = Meta_classifier.quick_fcmeans(features, num_clusters= num_clusters, m= 3)
 
-    # fig, ax = plt.subplots()
-
-    # len_list = np.concatenate([data['Lengths'][stim_mask],data['Lengths'][np.invert(stim_mask)]])
-    # pow_list = np.concatenate([data['Powers'][stim_mask],data['Powers'][np.invert(stim_mask)]])
-    # ones_list = np.ones_like(data['Lengths'][np.invert(stim_mask)])
-
-    # alph_list = np.concatenate([alphas, ones_list])
-    # label_list = np.concatenate([labels, ones_list - 2])
-
-    # power_length_analysis.overlay_plot(len_list, pow_list, label_list, 'mean', 'brg', alph_list,
-    #                                    40, [940, max(data['Lengths'])], [min(data['Powers']), max(data['Powers'])], 
-    #                                    fig, ax)
-
-    # plt.show()
-    # for i, label in enumerate(np.unique(labels)):
-    #     mask = labels == label
-
-    #     color = spect_map((i+1)/(max(np.unique(labels)+1)))
-
-    #     power_length_analysis.plot_2d_stat_hist(data['Lengths'][stim_mask][mask],
-    #                 data['Powers'][stim_mask][mask],
-    #                 alphas[mask],
-    #                 [940, max(data['Lengths'])],
-    #                 [min(data['Powers']), max(data['Powers'])],
-    #                 color, fig, ax
-    #                 )
+    #pl plot
+    fig, ax, _, _ = power_length_analysis.all_cluster_plot(
+        np.max(labels), labels,
+        data['Lengths'][stim_mask], data['Powers'][stim_mask],
+        'tab20b', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 8
+        )
+    fig.set_figwidth(4.72)
+    fig.set_figheight(4.72)
+    power_length_analysis.add_loss_rate(ax, 'inter.pkl')
+    ax.set_xlabel('$\lambda$ ($nm$)')
+    ax.set_ylabel('Pump Power (W)')
+    # plt.savefig(rf'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\FCplots\FC_Fake_Kmeans_{num_clusters}.pdf', format = 'pdf')
+    plt.show()
     
-    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\fc_CNN_overlay_7_clusters.png')
 
+    #umap plot
+    # labels , _ = Meta_classifier.Kmeans_no_CNN(data['Files'][stim_mask], 7)
+    # img_embed = cu.umap2d_V2(data['Images'][stim_mask], 16, 0.2, 2)
+    # # cnn_embed = cu.umap2d_V2(features, 16, 0.0, 2)
+
+    # fig, ax = plt.subplots(figsize = [3.7, 2.5])
+    # mapp = ax.scatter(img_embed[:,0], img_embed[:,1], c = (labels + 0.5)/(num_clusters + 0.5), cmap = 'tab20b',s = 5, vmin = 0, vmax = 1)
+
+    # ax.set_yticklabels([])
+    # ax.set_xticklabels([])
+
+    # norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 0.5)
+    # cbarmap = matplotlib.colormaps['tab20b']
+    # my_cmap = cbarmap(np.arange(cbarmap.N))
+    # my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
+
+    # cbarmap = matplotlib.colors.ListedColormap(my_cmap)
+
+    # mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
+
+    # cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(0, stop = num_clusters + 0.5))
+    # tick_locs = (np.arange(0, num_clusters)) + 0.5
+    # cbar.set_ticks(tick_locs)
+    # cbar.set_ticklabels(np.arange(num_clusters))
+
+    # plt.savefig(rf'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\UMAP plots\UMAP_img_Just_Kmeans{num_clusters}.pdf', format = 'pdf')
     # plt.show()
+    
 
-    print([min(data['Lengths']), max(data['Lengths'])])
+    # print([min(data['Lengths']), max(data['Lengths'])])
 
-    num_clusters = 5
+    #ind plot
 
-    membership_mat = Meta_classifier.quick_fcmeans(features, num_clusters = num_clusters, m = 4, return_matrix= True)
+    membership_mat = Meta_classifier.quick_fcmeans(features, num_clusters = num_clusters, m = 3, return_matrix= True)
 
 
     numrows = 2
@@ -126,31 +115,7 @@ if __name__ == '__main__':
     fig.supxlabel('$\lambda$ ($nm$)', y = 0.005)
     fig.supylabel('Pump power $(W)$')
 
-    # axes = []
-    # if membership_mat.shape[0] % 2 == 0:
-    #     gs = gridSpec.GridSpec(nrows=numrows, ncols=numcols)
 
-    #     for i in range(numcols*2):
-    #         axes.append(fig.add_subplot(gs[i//numcols,i%numcols], title = i))
-    #         if i % numcols != 0:
-    #             axes[i].set_yticklabels([])
-
-    # else:
-    #     gs = gridSpec.GridSpec(nrows=numrows, ncols=1)
-    #     gs01 = gridSpec.GridSpecFromSubplotSpec(nrows = 1, ncols=numcols, subplot_spec=gs[1])
-    #     gs02 = gridSpec.GridSpecFromSubplotSpec(nrows = 1, ncols=(membership_mat.shape[0] - numcols), 
-    #                                             subplot_spec=gs[0], wspace=0.3)
-    #     for i in range(numcols):
-    #         axes.append(fig.add_subplot(gs01[i]))
-    #         if i != 0:
-    #             axes[i].set_yticklabels([])
-    #     for i in range(membership_mat.shape[0] - numcols):
-    #         axes.append(fig.add_subplot(gs02[i]))
-    #         if i != 0:
-    #             axes[i + numcols].set_yticklabels([])
-        
-    # for i, _ in enumerate(axes):
-    #     axes[i].xaxis.set_major_locator(ticker.MultipleLocator(10))
 
     vs = [np.min(membership_mat), np.max(membership_mat)]
 
@@ -174,6 +139,6 @@ if __name__ == '__main__':
     cbax = plt.subplot(gs[1])
     plt.colorbar(plot, cbax,cmap = 'Spectral_r', label = 'Likelihood',)
 
-    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Ind_clusters.png')
+    # plt.savefig(rf'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\FCplots\Ind_clusters{num_clusters}.pdf', format = 'pdf')
     plt.show()
 

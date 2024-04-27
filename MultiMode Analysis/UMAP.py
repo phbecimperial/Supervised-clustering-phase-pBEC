@@ -26,7 +26,7 @@ plt.style.use(['science','ieee', 'no-latex'])
 
 
 def umap2d_V2(features, neighbours, min_dist, embedding_dim = 2):
-    reducer = umap.UMAP(n_neighbors=neighbours, min_dist=min_dist, metric='correlation', densmap=True, n_components=embedding_dim)
+    reducer = umap.UMAP(n_neighbors=neighbours, min_dist=min_dist, metric='correlation', densmap=False, n_components=embedding_dim)
 
     embedding = reducer.fit_transform(features)
 

@@ -30,7 +30,7 @@ def predict(data, cluster_centres, m, classifer_model):
         return D
 
 
-def Kmeans_no_CNN(files, num_clusters, powers, lengths):
+def Kmeans_no_CNN(files, num_clusters, powers = None, lengths = None):
 
     img_features = []
     for i, f in enumerate(files):
@@ -228,7 +228,7 @@ def quick_kmeans(features, num_clusters):
 
 def quick_fcmeans(features, num_clusters, m = 1.5, return_matrix = False):
 
-    fcm = FuzzyKMeans(k=num_clusters, m=m)
+    fcm = FuzzyKMeans(k=num_clusters, m=m, random_state=22)
     fcm.fit(features)
     fuzzy_membership_matrix = fcm.fuzzy_labels_
     fuzzy_membership_matrix = fuzzy_membership_matrix.T
@@ -333,18 +333,18 @@ if __name__ == '__main__':
 
     model_root = r'C:\Users\Pouis\Documents\Uni Shit\Masters\PhaseGit\Supervised-clustering-phase-pBEC\MultiMode Analysis\Models\Apr26'
 
-    features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths,True)
+    # features, plfeatures = predeict_images_CNN(files,model_root,5,powers, lengths,True)
 
-    with open('Apr_26_POWLEN_features.pkl', 'wb') as f:
-        pickle.dump(plfeatures, f)
+    # with open('Apr_26_POWLEN_features.pkl', 'wb') as f:
+    #     pickle.dump(plfeatures, f)
 
-    with open('Apr_26_features.pkl', 'wb') as f:
-        pickle.dump(features, f)
+    # with open('Apr_26_features.pkl', 'wb') as f:
+    #     pickle.dump(features, f)
  
-    out, preds = predict_full_output(files, 5, model_root, True)
+    # out, preds = predict_full_output(files, 5, model_root, True)
 
-    with open('Apr_26_CNN_out.pkl', 'wb') as f:
-        pickle.dump((out, preds), f)
+    # with open('Apr_26_CNN_out.pkl', 'wb') as f:
+    #     pickle.dump((out, preds), f)
 
 
     #labels, _  = Kmeans_no_CNN(files, 13, powers, lengths)

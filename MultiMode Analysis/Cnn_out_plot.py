@@ -92,24 +92,26 @@ if __name__ == '__main__':
     cbax = plt.subplot(gs[1])
     plt.colorbar(mappable=plot,cax=cbax, cmap = 'Spectral_r', label = 'Likelihood') #, boundaries = np.linspace(0,1,100,endpoint=False))
 
-    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN_likelihood.png')
+    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN plots\CNN_likelihood.pdf', format='pdf')
     plt.show()
 
+    plt.rcParams['axes.prop_cycle'] = ("cycler('color', ['k', 'r', 'b', 'g', 'm']) + cycler('linestyle', ['-', '--', ':', '-.', (0, (3, 1, 1, 1, 1, 1))])")
+
     for i, stat in enumerate(stats):
-        idx = 0
+        idx = 12
         probs = stat[0].T[::-1]
         # plt.imshow(probs)
         # plt.show()
-        n_mask = np.isnan(probs[idx])
-        yval = stat[2][idx]
+        n_mask = np.isnan(probs[:,idx])
+        yval = stat[1][-idx]
         
 
-        xs = stat[1][:-1][~n_mask]
+        xs = stat[2][1:-1][~n_mask]
         print(len(xs))
         x = np.linspace(min(xs),max(xs),100)
 
         
-        spline = interp1d(xs, probs[idx][~n_mask])
+        spline = interp1d(xs, probs[:,idx][~n_mask])
         plt.plot(x, spline(x), label = modelist[i][0])
         plt.title(yval)
     plt.legend()

@@ -50,13 +50,13 @@ def add_loss_rate(ax: plt.Axes, abs_path):
     """
 
     with open(abs_path, 'rb') as f:
-        loss_rate = pkl.load(f)
+        abs_rate = pkl.load(f)
 
     llim, rlim = ax.get_xlim()
     x = np.linspace(llim, rlim, 2)
 
     # thermal = absorb(x)/70
-    xto_thermal = lambda y:  loss_rate(y*1e-9)/8e10
+    xto_thermal = lambda y:  abs_rate(y*1e-9)/8e10
 
 
 
@@ -196,11 +196,18 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
 
     return fig, ax, plot
 
-def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = None):
-    density, _, _ = np.histogram2d(data_x, 
-                                   data_y,
-                                   bins = bins, density=True, 
-                                   range=[x_range,y_range])
+def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = None, bin_edges = None):
+
+    if bin_edges is None:
+        density, _, _ = np.histogram2d(data_x, 
+                                    data_y,
+                                    bins = bins, density=True, 
+                                    range=[x_range,y_range])
+    else:
+        density, _, _ = np.histogram2d(data_x, 
+                            data_y,
+                            bins = bin_edges, density=True, 
+                            range=[x_range,y_range])
     
     density = density/np.max(density)
 
@@ -302,22 +309,21 @@ def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bi
 
 
 def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x_range, y_range, s = 1, fig = None, ax = None, 
-                     show_cbar = True) -> tuple[matplotlib.figure.Figure, plt.Axes, object, object]:
+                     show_cbar = True, bin_edges = None) -> tuple[matplotlib.figure.Figure, plt.Axes, object, object]:
         if fig is None:
             fig, ax = plt.subplots(figsize = [6.3,5])
 
-        num_clusters = np.max(cluster_labels) + 1
+        num_clusters = np.max(cluster_labels) + 1 
         spect_map = matplotlib.colormaps[cmap]
 
         for i, label in enumerate(np.unique(cluster_labels, axis=0)):
             mask = cluster_labels  == i
-            color = spect_map(((label + 0.5) / num_clusters))
-
+            color = spect_map(((label + 0.5) / (num_clusters + 0.5)))
             fig, ax, plot = plot_2dhist(data_x[mask],
                         data_y[mask],
                         x_range,
                         y_range,
-                        color, bins, fig, ax
+                        color, bins, fig, ax, bin_edges = bin_edges
                         )
             
             ax.scatter(data_x[mask],
@@ -327,7 +333,7 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
 
             
             
-            norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters)
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=num_clusters + 0.5)
             cbarmap = matplotlib.colormaps[cmap]
             my_cmap = cbarmap(np.arange(cbarmap.N))
             my_cmap[:,-1] = np.ones_like(my_cmap[:,-1])
@@ -336,8 +342,8 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
 
             mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cbarmap)
 
-            cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(stop = num_clusters + 1))
-            tick_locs = (np.arange(num_clusters) + 0.5)*(num_clusters)/num_clusters
+            cbar = fig.colorbar(mappable, ax=ax, boundaries = np.arange(0, stop = num_clusters + 0.5))
+            tick_locs = (np.arange(0, num_clusters) + 0.5)
             cbar.set_ticks(tick_locs)
             cbar.set_ticklabels(np.arange(num_clusters))
 
@@ -431,7 +437,7 @@ def data_dict(files):
         
         split_file1 = file.split(sep)
         # print(split_file1)
-        image = cv2.imread(file)
+        image = cv2.imread(file, 0)
 
 
         split_file = split_file1[-1].split('_')
@@ -465,6 +471,11 @@ if __name__ == '__main__':
         'savefig.dpi': 300
     })
 
+    with open('inter.pkl', 'rb') as f:
+        abr = pkl.load(f)
+    
+
+
     with open(r'MultiMode Analysis\relavent_files.pkl', 'rb') as f:
         files = pkl.load(f)
 
@@ -482,31 +493,37 @@ if __name__ == '__main__':
     data['PCA_Length'] = fit_pca(data['Lengths'], data['Pcas'])
 
 
-    spect_map = matplotlib.cm.get_cmap('Spectral')
-
-    label_files = np.array(glob('Apr_23_predicted_labels_*.pkl'))
+    label_files = np.array(glob('Apr_26_predicted_labels_*.pkl'))
     cluster_num = np.array([int(i.split('_')[-1][:-4]) for i in label_files])
 
     label_files = label_files[np.argsort(cluster_num)]
+    cluster_num = np.sort(cluster_num) - 3
+    # with open('Apr_26_predicted_labels_8.pkl', 'rb') as f:
+    #     cluster_labels = pkl.load(f)
 
-    with open('Apr_23_predicted_labels_7.pkl', 'rb') as f:
-        cluster_labels = pkl.load(f)
+
+    cluster_labels,_ = Meta_classifier.Kmeans_no_CNN(data['Files'][stim_mask], 7)
 
     fig, ax, _, _ = all_cluster_plot(
         np.max(cluster_labels), cluster_labels,
         data['Lengths'][stim_mask], data['Powers'][stim_mask],
-        'tab20b', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 2
+        'tab20b', 30, [940,960], [min(data['Powers']), max(data['Powers'])], 8
         )
+    
+    fig.set_figwidth(3.7)
+    fig.set_figheight(2.5)
+
     add_loss_rate(ax, 'inter.pkl')
     ax.set_xlabel('$\lambda$ ($nm$)')
     ax.set_ylabel('Pump Power (W)')
+    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Kmeans plots\Just_Kmeans_7.pdf', format = 'pdf')
     plt.show()
     
 
     fig = plt.figure(figsize=[6.3, 5])
 
 
-    fig, axes, gs = grid_plot(len(label_files), 4, 2, 0.1, 0.15,fig = fig)
+    fig, axes, gs = grid_plot(len(label_files), 3, 2, 0.1, 0.15,fig = fig)
 
     for i, file in enumerate(label_files):
 
@@ -516,25 +533,22 @@ if __name__ == '__main__':
         # with open('Apr_2_CNN_out.pkl', 'rb') as f:
         #     outs, preds = pkl.load(f)
 
-        with open(file, 'rb') as f:
-            cluster_labels = pkl.load(f)
+        # with open(file, 'rb') as f:
+        #     cluster_labels = pkl.load(f)
         
-        # cluster_labels, _ = Meta_classifier.quick_kmeans(data['Images'][stim_mask], 6)
+        cluster_labels, _ = Meta_classifier.Kmeans_no_CNN(data['Files'][stim_mask], cluster_num[i])
         # cluster_labels = preds
         
         all_cluster_plot(
             np.max(cluster_labels), cluster_labels, 
             data['Lengths'][stim_mask], data['Powers'][stim_mask],
-            'Spectral', 30, [940,960], [min(data['Powers']), max(data['Powers'])], fig, 
-            axes[i])
+            'tab20b', 30, [940,960], [min(data['Powers']), max(data['Powers'])], fig = fig, ax = axes[i])
         
         # add_loss_rate(axes[i], 'absfunc.pkl')
         axes[i].set_title(f'{np.sort(cluster_num)[i]} clusters')
 
-    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\All_Kmeans.png')
+    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Kmeans plots\All_Just_Kmeans.pdf', format = 'pdf')
     plt.show()
-
-
 
 
 
