@@ -4,9 +4,11 @@ from glob import glob
 import matplotlib.colors
 import matplotlib.figure
 import numpy as np
+import numpy.typing as npt
 import matplotlib.pyplot as plt
 import cv2
 import pickle as pkl
+import json
 from scipy.ndimage import center_of_mass
 from scipy.stats import binned_statistic_2d
 import Meta_classifier
@@ -20,6 +22,14 @@ from scipy.interpolate import griddata, CloughTocher2DInterpolator, interp1d
 
 
 def crop_save_image(files,size,root):
+    """Crops around the center of an image and saves it
+
+
+    Args:
+        files (List[str]): List of files to crop
+        size (tuple[int,int]): Dimensions of cropped image
+        root (str): Path to save images
+    """    
 
     for f in glob(root + r'\*'):
         os.remove(f)
@@ -41,8 +51,8 @@ def crop_save_image(files,size,root):
     ##return image_crop
 
 
-def add_loss_rate(ax: plt.Axes, abs_path):
-    """_summary_
+def add_loss_rate(ax: plt.Axes, abs_path) -> callable:
+    """Fits and adds loss rate to a given axis
 
     Args:
         ax (plt.Axes): axes to add thermalisation to
@@ -63,12 +73,19 @@ def add_loss_rate(ax: plt.Axes, abs_path):
     thermalto_x = interp1d(xto_thermal(x), x, fill_value='extrapolate')
     ax.secondary_xaxis('top', functions=(xto_thermal, thermalto_x), xscale = 'log', xlabel = '$\gamma$')
 
+    return xto_thermal
+
     
 
 def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str):
-    """
-    New image cropping fn, parse in file of bec image and will take as center for all other images.
+    """    New image cropping fn, parse in file of bec image and will take as center for all other images.
     V simple don't know why I didn't think of this before
+
+    Args:
+        bec_file (str): File name for image of bec
+        files (list[str]): list of files to crop
+        size (list[int,int]): dimensions of cropeed image
+        root (str): directory to save images
     """
     bec_im = cv2.imread(bec_file, 0)
 
@@ -79,6 +96,8 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
 
     for f in files:
         image = cv2.imread(f, 0)
+        if image is None:
+            print(f)
         name = f.split(sep)[-1][:-4]
         
         image_crop = image[int(int(cx) - size[0]/2):int(int(cx) + size[0]/2),
@@ -92,26 +111,41 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
 
 
 
-def fit_pca(lengths, pcas):
-    """_summary_
+def fit_pca(lengths: npt.ArrayLike, pcas: npt.ArrayLike):
+    """Fits measured cavity lengths to PCA values
 
     Args:
-        lengths (_type_): _description_
-        pcas (_type_): _description_
+        lengths (npt.ArrayLike): Cavity Lengths
+        pcas (npt.ArrayLike): pca values
 
     Returns:
-        np.poly1d : _description_
+        npt.ArrayLike : fitted values
     """
     
     # plt.scatter(pcas, lengths)
     # plt.show()
-    popt = np.polyfit(pcas, lengths, 1)
+    popt = np.polyfit(pcas, lengths, 3)
     fit = np.poly1d(popt)
 
-    return fit(pcas)
+    return fit(pcas), fit
 
 
 def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig = None):
+    """Creates a grid of axes, can handle odd numbers of rows and computes spacing for remainder.
+
+    Args:
+        nplots (_type_): _description_
+        ncols (_type_): _description_
+        nrows (_type_): _description_
+        wspace (_type_): _description_
+        hspace (float, optional): _description_. Defaults to 0.4.
+        tick_spacing (int, optional): _description_. Defaults to 10.
+        fig (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+
     if fig is None:
         fig = plt.figure(figsize=[6.3, 4])
     axes = []
@@ -147,7 +181,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig
     
     return fig, axes, gs
 
-def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, 
+def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, bins = 10,
                       color = None, cmap = None, fig = None, ax = None, to_alpha = False,
                       vs = [0,1], ret_stat = False):
 
@@ -158,7 +192,7 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
     
     
     statistic, x_edge, y_edge ,_ = binned_statistic_2d(data_x, data_y, 
-                                         alphas, bins=30, 
+                                         alphas, bins=bins, 
                                          range = [x_range,y_range])
 
     
@@ -196,7 +230,7 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range,
 
     return fig, ax, plot
 
-def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = None, bin_edges = None):
+def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = None, bin_edges = None, alpha = 0.4):
 
     if bin_edges is None:
         density, _, _ = np.histogram2d(data_x, 
@@ -219,7 +253,7 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = 
     cust_cmap._init()
     
     alphas = np.linspace(0, 1, cust_cmap.N+3)
-    alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * 0.4
+    alphas = np.heaviside(alphas - 0.1, np.ones_like(alphas)) * alpha
     cust_cmap._lut[:,-1] = alphas
 
     plot = ax.imshow(density.T, 
@@ -426,6 +460,44 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
               extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
               aspect='auto', origin='lower', alpha=statistic_alpha.T)
 
+def data_from_metas(metas, files):
+
+    param_dict = {}
+    param_dict.update({'t': []})
+    param_dict.update({'image': []})
+    param_dict.update({'flat_image': []})
+    for i, (meta,file) in enumerate(zip(metas, files)):
+        with open(meta, 'r') as f:
+            meta = json.load(f)
+        for j, (key, val) in enumerate(meta['parameters'].items()):
+            if key not in param_dict.keys():
+                param_dict.update({key: []})
+            
+            param_dict[key].append(val)
+        
+        im = cv2.imread(file, 0)
+        t = meta['ts'].split('_')[0] + meta['ts'].split('_')[1]
+        param_dict['t'].append(int(t))
+        param_dict['image'].append(im)
+        param_dict['flat_image'].append(im.flatten()/255)
+
+        
+
+    
+    param_dict.update({'file': files})
+
+    data = {}
+    for key, val in param_dict.items():
+        data.update({key: np.array(val)})
+    return data
+
+
+    
+    
+    
+
+
+
 
 def data_dict(files):
     powers = []
@@ -450,12 +522,12 @@ def data_dict(files):
 
 
     data = {
-        'Files': np.array(files),
-        'Powers': np.array(powers),
-        'Lengths': np.array(lengths),
-        'Int_times': np.array(int_times),
-        'Pcas': np.array(pcas),
-        'Images': np.array(images)
+        'file': np.array(files),
+        'power': np.array(powers),
+        'length': np.array(lengths),
+        'int_time': np.array(int_times),
+        'pca': np.array(pcas),
+        'image': np.array(images)
     }
 
     return data
@@ -465,7 +537,7 @@ if __name__ == '__main__':
     plt.style.use(['science', 'ieee', 'no-latex'])
 
     plt.rcParams.update({
-        'figure.figsize': [6.3, 6.3],
+        'figure.figsize': [7.2, 6],
         'font.size': 12,
         'figure.dpi': 100,
         'savefig.dpi': 300
@@ -520,7 +592,7 @@ if __name__ == '__main__':
     plt.show()
     
 
-    fig = plt.figure(figsize=[6.3, 5])
+    fig = plt.figure(figsize=[7.2, 6])
 
 
     fig, axes, gs = grid_plot(len(label_files), 3, 2, 0.1, 0.15,fig = fig)
@@ -547,7 +619,9 @@ if __name__ == '__main__':
         # add_loss_rate(axes[i], 'absfunc.pkl')
         axes[i].set_title(f'{np.sort(cluster_num)[i]} clusters')
 
-    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Kmeans plots\All_Just_Kmeans.pdf', format = 'pdf')
+    fig.supxlabel('$\lambda$ ($nm$)')
+    fig.supylabel('Pump Power (W)')
+    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\Kmeans plots\All_Just_Kmeans.pdf', format = 'pdf')
     plt.show()
 
 

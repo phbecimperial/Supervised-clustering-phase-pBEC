@@ -303,11 +303,6 @@ def predeict_images_fc(files, phases=10, num_clusters=10, m=1.5):
     return labels, alpha
 
 
-           
-
-           
-
-
 #Get the new data
 
 root_dir = 'INSERT HERE'

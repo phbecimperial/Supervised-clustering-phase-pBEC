@@ -11,7 +11,7 @@ import generate_training
 
 
 
-def Training(model, epochs, label, optimizer, train_loader, val_loader, history, criterion, stop_check = 15):
+def Training(model, epochs, label, optimizer, train_loader, val_loader, history, criterion, save_path, stop_check = 15):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     iter = tqdm(range(epochs), leave=True)
@@ -86,7 +86,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
             history['val_loss'].append(total_loss.cpu().detach().numpy() / steps)
             iter.set_description(f'Accuracy of the network on the validation images: {100 * correct / total} %')
 
-            torch.save(model, r'MultiMode Analysis\Models\Apr26_Res_Class_' + str(label) + '.pt', pkl)
+            torch.save(model, save_path + str(label) + '.pt', pkl)
                 # del model
 
 

@@ -42,15 +42,15 @@ def noise_shift(im, scale):
     return warped
 
 
-def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5], 
+def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5], 
                   wavelen=950*nm, spec_num = [0, 20], mult_las_split = 0.5, spec_rad = [1*um, 7*um], 
-                  save = True, save_dir = None):
+                  save = True, save_dir = None, mode_func = mode_func):
     images = []
 
     for i in tqdm(range(num)):
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
-        comb, outputs = mode_func(mult_las_split, modes, len(modes))
+        comb, outputs = mode_func(mult_las_split, mode_params, len(mode_params))
         # comb = modes[np.random.randint(0, len(modes)-1)]
         # comb = [1]
         # outputs = []
@@ -62,14 +62,14 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         # w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
         for j, (mode, amp) in enumerate(zip(comb, amps)):
             w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
-            if mode[3] is not False:
-                w = np.random.random(1)*(max(mode[3]) - min(mode[3])) + min(mode[3])
+            if mode['diameter'] is not False:
+                w = np.random.random(1)*(max(mode['diameter']) - min(mode['diameter'])) + min(mode['diameter'])
 
-            addbeam = GaussBeam(beam, w0=w, n=mode[0][0], m=mode[0][1], LG=mode[1])
+            addbeam = GaussBeam(beam, w0=w, n=mode['mode'][0], m=mode['mode'][1], LG=mode['LG'])
 
             to_squash = quick_norm(Intensity(addbeam))
 
-            if not (mode[0][0] == mode[0][1] == 0):
+            if not (mode['mode'][0] == mode['mode'][1] == 0):
                 to_squash = zoom(to_squash, [np.random.randint(75,100)/100,1])
             
             to_squash = to_squash[:,int((to_squash.shape[1] - to_squash.shape[0])/2):int((to_squash.shape[1] + to_squash.shape[0])/2)]
@@ -87,8 +87,8 @@ def gererate_data(num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
             addbeam.field = zoom(to_squash, [dim/to_squash.shape[0],dim/to_squash.shape[1]])
 
 
-            if mode[2] is not False:
-                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode[2] + np.random.randint(-15,15), reshape=False)
+            if mode['angle'] is not False:
+                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-15,15), reshape=False)
             else:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
@@ -181,7 +181,7 @@ import concurrent.futures
 def generate_data_worker(args):
     index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir = args
 
-    return gererate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir)
+    return generate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir)
 
 def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
                   wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, save_dir = None):

@@ -73,6 +73,30 @@ def mode_func(multi_split = 0.5, modelist = None, max_modes = 10, single_mode = 
             outputs.append(Tensor([0,1]))
     return ms, stack(outputs)
 
+def bec_multi(multi_split = 0.5, modelist = None, max_modes = 10):
+    
+    if multi_split > random():
+        # print('!')
+        return  [modelist[0]], stack([Tensor([1,0])])
+
+    ms = []
+    n = randint(1,max_modes)
+    
+    for i in range(n):
+        newmode = modelist[randint(0,len(modelist))]
+        all_bec = True
+        while newmode in ms or all_bec:
+            newmode = modelist[randint(0,len(modelist))]
+            all_bec = False
+
+            if n == 1 and newmode == modelist[0]:
+                all_bec = True
+
+
+        
+        ms.append(newmode)
+
+    return ms, stack([Tensor([0,1])])
 
 
 names = [

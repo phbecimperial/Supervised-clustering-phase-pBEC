@@ -69,7 +69,7 @@ if __name__ == '__main__':
     fig.supylabel('Pump power $(W)$')
 
     stats = []
-
+    save_dict = {}
     for i in range(outs.shape[1]):
         
         # color = spect_map((i+1)/(outs.shape[1]+1))
@@ -88,14 +88,25 @@ if __name__ == '__main__':
                                                 fig = fig, ax = axes[i], vs = vs, ret_stat=True)
         stats.append(stat)
         axes[i].set_title(modelist[i][0])
+
+        save_dict[f'mode {modelist[i][0]} probabilities'] = stat[0].tolist()
+    
+    save_dict['x edges'] = stat[1].tolist()
+    save_dict['y edges'] = stat[2].tolist()
     
     cbax = plt.subplot(gs[1])
     plt.colorbar(mappable=plot,cax=cbax, cmap = 'Spectral_r', label = 'Likelihood') #, boundaries = np.linspace(0,1,100,endpoint=False))
 
-    plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN plots\CNN_likelihood.pdf', format='pdf')
+    # plt.savefig(r'C:\Users\Pouis\OneDrive - Imperial College London\Masters\Thesis\Thesis_Plots\CNN plots\CNN_likelihood.pdf', format='pdf')
     plt.show()
 
     plt.rcParams['axes.prop_cycle'] = ("cycler('color', ['k', 'r', 'b', 'g', 'm']) + cycler('linestyle', ['-', '--', ':', '-.', (0, (3, 1, 1, 1, 1, 1))])")
+
+    import json
+
+    with open('Cnn_probabilities.json', 'w') as f:
+        json.dump(save_dict, f)
+        
 
     for i, stat in enumerate(stats):
         idx = 12

@@ -1,29 +1,56 @@
 from glob import glob
+from os import sep
 import numpy as np
+import numpy.typing as npt
 import pickle as pkl
+import json
 import cv2
 from tqdm import tqdm
 import matplotlib
 import matplotlib.pyplot as plt
 import power_length_analysis
 
-def open_img_files(t_stamps: list[str],  root_dir: str):
-
-    mint = int(t_stamps[0].split('_')[0] + t_stamps[0].split('_')[1])
-    maxt = int(t_stamps[1].split('_')[0] + t_stamps[1].split('_')[1])
-
-    files = glob(root_dir + r'\\' + t_stamps[0].split('_')[0] + r'\*.png') + glob(root_dir + r'\\' + t_stamps[1].split('_')[0] + r'\*.png')
+def open_img_files(t_stamps_list: list[list[str]],  root_dir: str):
 
     rel_files = []
+    rel_metas = []
 
-    for i in files:
-        day = (i.split('\\')[-1].split('_')[1])
-        time = (i.split('\\')[-1].split('_')[2])
+    for t_stamps in t_stamps_list:
 
-        if mint <= int(day + time) <= maxt:
-            rel_files.append(i)
+        mint = int(t_stamps[0].split('_')[0] + t_stamps[0].split('_')[1])
+        maxt = int(t_stamps[1].split('_')[0] + t_stamps[1].split('_')[1])
+
+        files = glob(root_dir + sep + t_stamps[0].split('_')[0] + sep + '*.png') + glob(root_dir + sep + t_stamps[1].split('_')[0] + sep + '*.png')
+        metas = glob(root_dir + sep + t_stamps[0].split('_')[0] + sep + '*meta.json') + glob(root_dir + sep + t_stamps[1].split('_')[0] + sep + '*meta.json')
+
+
+        for i, file in enumerate(files):
+            day = (file.split(sep)[-1].split('_')[1])
+            time = (file.split(sep)[-1].split('_')[2])
+
+            if mint <= int(day + time) <= maxt:
+                rel_files.append(file)
+
+        for i, meta in enumerate(metas):
+            day = (meta.split(sep)[-1].split('_')[1])
+            time = (meta.split(sep)[-1].split('_')[2])
+
+            if mint <= int(day + time) <= maxt:
+                rel_metas.append(meta)
+
+
+
+
     
-    return np.unique(rel_files)
+    rel_files, args = np.unique(rel_files, return_index=True)
+    rel_metas, args = np.unique(rel_metas, return_index=True)
+
+    for meta, file in rel_metas, rel_files
+
+    # rel_metas = list(np.array(rel_metas)[args])
+    # print(len(rel_files))
+    # print(len(rel_metas))
+    return rel_files, rel_metas
 
 def select_stimulated(files, cuttoff: float):
     truth_list = []
@@ -34,6 +61,29 @@ def select_stimulated(files, cuttoff: float):
     # print(truth_list)
     truth_list = np.array(truth_list)
     return files[truth_list], truth_list
+
+def select_stimulated_exp(data: dict, threshold: int) -> npt.ArrayLike:
+    truth_list = []
+    for i in data['camera_integration_time']:
+        truth_list.append(i < threshold)
+    return np.array(truth_list)
+
+def select_stimulated_exp_from_filename(files: list[str], threshold: int):
+    truth_list = []
+    for i in files:
+        # print(i)
+        truth_list.append(float(i.split(sep)[-1].split('_')[3]) < threshold)
+    return np.array(truth_list)
+
+def select_stimulated_nd(data: dict) -> npt.ArrayLike:
+    truth_list = []
+    for i in data['nd_filter']:
+        truth_list.append(i != 0)
+    return np.array(truth_list)
+
+
+
+
 
 def select_line(files, point: list[float], height: float):
 
