@@ -19,6 +19,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 from scipy.spatial import KDTree
 from scipy.interpolate import griddata, CloughTocher2DInterpolator, interp1d
+import tqdm
 
 
 def crop_save_image(files,size,root):
@@ -278,6 +279,8 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = 
     plot = ax.imshow(density.T, 
                extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
                aspect='auto', cmap=cust_cmap, origin='lower', vmin = 0, vmax = 1)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
     
     
     return fig, ax, plot
@@ -381,6 +384,8 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
             
             ax.scatter(data_x[mask],
                         data_y[mask], color = color, zorder = 100, label = None, s = s)
+            ax.set_yscale('log')
+            ax.set_xscale('log')
 
         if show_cbar:
 
@@ -524,7 +529,7 @@ def data_dict(files):
     int_times = []
     images = []
     pcas = []
-    for i, file in enumerate(files):
+    for i, file in tqdm.tqdm(enumerate(files)):
         
         split_file1 = file.split(sep)
         # print(split_file1)
@@ -683,3 +688,58 @@ if __name__ == '__main__':
     plt.scatter(data['Lengths'][np.invert(stim_mask)], data['Powers'][np.invert(stim_mask)], color = 'grey')
     plt.scatter(data['Lengths'][stim_mask], data['Powers'][stim_mask], c =cluster_labels, cmap='tab10')
     plt.show()
+
+from bokeh.plotting import figure, show
+from bokeh.models import HoverTool, ColumnDataSource, CustomJS
+from PIL import Image
+import io
+import base64
+from bokeh.transform import linear_cmap
+from bokeh.palettes import Category10
+
+def interactive_scatter(x, y, img_files, labels_data):
+    masked_files = img_files
+    images_base64 = []
+    for file_name in masked_files:
+        with open(file_name, "rb") as f:
+            img = Image.open(f)
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            images_base64.append(img_str)
+
+
+    num_labels = len(set(labels_data))
+    palette = Category10[num_labels]
+
+
+    # Create ColumnDataSource
+    source = ColumnDataSource(data=dict(
+        x=x,
+        y=y,
+        images=images_base64,
+        filename=masked_files,
+        labels=labels_data
+    ))
+
+    # Create Bokeh plot
+    plot = figure()
+
+    # Add scatter plot
+    plot.scatter(x='x', y='y', source=source, size=10, fill_color=linear_cmap('labels', palette, min(labels_data), max(labels_data)))
+
+    # Add HoverTool
+    hover = HoverTool(tooltips="""
+        <div>
+            <div>
+                <img src='data:image/jpeg;base64, @{images}' style='width:200px; height:200px;'>
+            </div>
+            <div>
+                <span>@filename</span>
+            </div>
+        </div>
+    """)
+    plot.add_tools(hover)
+
+    # Display plot
+    show(plot)
