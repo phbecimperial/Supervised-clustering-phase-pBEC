@@ -279,8 +279,8 @@ def plot_2dhist(data_x, data_y, x_range, y_range, color, bins, fig = None, ax = 
     plot = ax.imshow(density.T, 
                extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
                aspect='auto', cmap=cust_cmap, origin='lower', vmin = 0, vmax = 1)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
+    #ax.set_xscale('log')
+    #ax.set_yscale('log')
     
     
     return fig, ax, plot
@@ -384,8 +384,8 @@ def all_cluster_plot(num_clusters, cluster_labels, data_x, data_y, cmap, bins, x
             
             ax.scatter(data_x[mask],
                         data_y[mask], color = color, zorder = 100, label = None, s = s)
-            ax.set_yscale('log')
-            ax.set_xscale('log')
+            #ax.set_yscale('log')
+            #ax.set_xscale('log')
 
         if show_cbar:
 
