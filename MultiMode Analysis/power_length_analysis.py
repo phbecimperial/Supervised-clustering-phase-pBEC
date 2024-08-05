@@ -111,7 +111,7 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
 
     cx,cy = center_of_mass(bec_im)
 
-    for f in glob(root + r'\*'):
+    for f in glob(root + sep + '*'):
         os.remove(f)
 
     for f in files:
@@ -360,7 +360,7 @@ def overlay_plot(data_x, data_y, labels, statistic, cmap: str, alphas = None, bi
                                                   statistic = statistic, bins = bins, range=[x_range, y_range])
 
         plt.imshow(fake_bin, cmap = cust_cmap, extent=x_range + y_range, aspect='auto', origin='lower')
-        plt.title(label)
+        # plt.title(label)
     plt.show()
 
 
@@ -485,7 +485,7 @@ def plot_2d_stat_histv2(data_x, data_y, alphas, labels, fig=None, ax=None):
               aspect='auto', origin='lower', alpha=statistic_alpha.T)
 
 def data_from_metas(metas, files):
-
+    from generate_training import quick_norm
     param_dict = {}
     param_dict.update({'t': []})
     param_dict.update({'image': []})
@@ -503,7 +503,7 @@ def data_from_metas(metas, files):
         t = meta['ts'].split('_')[0] + meta['ts'].split('_')[1]
         param_dict['t'].append(int(t))
         param_dict['image'].append(im)
-        param_dict['flat_image'].append(im.flatten()/im.max())
+        param_dict['flat_image'].append(quick_norm(im).flatten())
 
         
 
