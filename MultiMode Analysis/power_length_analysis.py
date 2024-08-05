@@ -31,6 +31,8 @@ def crop_save_image(files,size,root):
         root (str): Path to save images
     """    
 
+
+
     for f in glob(root + r'\*'):
         os.remove(f)
 
@@ -89,7 +91,24 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
     """
     bec_im = cv2.imread(bec_file, 0)
 
-    cx, cy = center_of_mass(bec_im**3)
+    # cx, cy = center_of_mass(bec_im**8)
+    ravel_arg = np.argmax(bec_im)
+    cx, cy = np.unravel_index(ravel_arg, bec_im.shape)
+    bec_im[:int(cx - size[0]/2) ,:int(cy - size[1]/2)] = 0
+    bec_im[int(cx + size[0]/2):, int(cy + size[1]/2):] = 0
+
+    # cx, cy = center_of_mass(bec_im**8)
+
+    from Meta_classifier import sigmoid
+    plt.imshow(bec_im)
+    plt.show()
+
+    bec_im = sigmoid((bec_im- bec_im.min())/(bec_im.max()-bec_im.min()), 0.05, 0.95)
+
+    plt.imshow(bec_im)
+    plt.show()
+
+    cx,cy = center_of_mass(bec_im)
 
     for f in glob(root + r'\*'):
         os.remove(f)
@@ -105,7 +124,7 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
         #print(int(int(cx) - size[0]/2),int(int(cx) + size[0]/2))
         #print(int(int(cy) - size[0]/2),int(int(cy) + size[0]/2))
         #print(cx,cy)
-
+        # image_crop = sigmoid(image_crop, 0.01, 0.1)*255
         flag =  cv2.imwrite(root + r"\\" + 'Crop' + name + '.png', image_crop)
         #print(root + r'\\' + name + '.png')
 
@@ -479,7 +498,7 @@ def data_from_metas(metas, files):
         t = meta['ts'].split('_')[0] + meta['ts'].split('_')[1]
         param_dict['t'].append(int(t))
         param_dict['image'].append(im)
-        param_dict['flat_image'].append(im.flatten()/255)
+        param_dict['flat_image'].append(im.flatten()/im.max())
 
         
 

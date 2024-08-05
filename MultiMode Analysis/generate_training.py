@@ -44,7 +44,7 @@ def noise_shift(im, scale):
 
 def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5], 
                   wavelen=950*nm, spec_num = [0, 20], mult_las_split = 0.5, spec_rad = [1*um, 7*um], 
-                  save = True, save_dir = None, mode_func = mode_func):
+                  save = True, save_dir = None, mode_func = mode_func, sigm = None):
     images = []
 
     for i in tqdm(range(num)):
@@ -56,7 +56,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         # outputs = []
         amps = 0.3 + np.random.random(len(comb))*0.7
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/32 - dim/64
+        shifts = np.random.random(2)*dim/16 - dim/32
 
         
         # w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
@@ -70,7 +70,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
             to_squash = quick_norm(Intensity(addbeam))
 
             if not (mode['mode'][0] == mode['mode'][1] == 0):
-                to_squash = zoom(to_squash, [np.random.randint(75,100)/100,1])
+                to_squash = zoom(to_squash, [np.random.randint(50,100)/100,1])
             
             to_squash = to_squash[:,int((to_squash.shape[1] - to_squash.shape[0])/2):int((to_squash.shape[1] + to_squash.shape[0])/2)]
 
@@ -88,7 +88,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
 
 
             if mode['angle'] is not False:
-                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-15,15), reshape=False)
+                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-30,30), reshape=False)
             else:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
@@ -135,11 +135,14 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
 
         im = quick_norm(Intensity(beam))
         im += im * np.random.random(im.shape)/10
-        im = sigmoid(im, 0.05, 0.1)
+        if sigm is not None:
+            im = sigmoid(im, sigm[0], sigm[1])
+    
+
         im = quick_norm(im)
-        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,20))
+        # im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,20))
         im_max = np.max(im)
-        # im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
+        im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * quick_norm(im)
 
@@ -179,17 +182,22 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
 import concurrent.futures
 
 def generate_data_worker(args):
-    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir = args
+    index, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir, mode_func, sigm = args
 
-    return generate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir)
+    return generate_data(num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir, mode_func, sigm)
 
-def generate_data_multithreaded(num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
-                  wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, save_dir = None):
+def generate_data_multithreaded(
+        num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
+        wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, 
+        save_dir = None, mode_func = mode_func, sigm = None):
     save = True
     if save:
         for f in glob(save_dir + r'\*'):
             os.remove(f)
-    args_list = [(i, num, size, dim, modes, w0, noise, fringe_size, wavelen, spec_num, mult_las_split, spec_rad, save, save_dir) for i in range(num_threads)]
+    args_list = [(
+        i, num, size, dim, modes, w0, noise, fringe_size, 
+        wavelen, spec_num, mult_las_split, spec_rad, save, 
+        save_dir, mode_func, sigm) for i in range(num_threads)]
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = list(executor.map(generate_data_worker, args_list))
     return results

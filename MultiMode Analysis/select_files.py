@@ -41,11 +41,11 @@ def open_img_files(t_stamps_list: list[list[str]],  root_dir: str):
 
 
 
-    
     rel_files, args = np.unique(rel_files, return_index=True)
     rel_metas, args = np.unique(rel_metas, return_index=True)
 
-    for meta, file in rel_metas, rel_files
+    # for meta, file in rel_metas, rel_files:
+
 
     # rel_metas = list(np.array(rel_metas)[args])
     # print(len(rel_files))

@@ -6,6 +6,7 @@ from Fcmeans_utils import CustomModel, CombinedModel
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 from pickle_Dataset import CustomDataset, Predict_Dataset
+from generate_training import quick_norm
 from tqdm import tqdm
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.decomposition import PCA
@@ -65,9 +66,9 @@ def Kmeans_no_CNN(files, num_clusters, powers = None, lengths = None):
     return kmeans.labels_, None
 
 
-def predict_full_output(files, phases, root, sigm = False):
+def predict_full_output(files, phases, root, sigm = None):
 
-    print(files)
+    # print(files)
     mod_files = glob(root + r'*.pt')
     sort_args = np.argsort([i.split(sep)[-1].split('_')[-1][:-3] for i in mod_files])
     mod_files = np.array(mod_files)[sort_args]
@@ -92,14 +93,17 @@ def predict_full_output(files, phases, root, sigm = False):
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
-                if sigm:
+                if sigm is not None:
                     image = cv2.imread(f,0)
-                    image = (image - np.min(image))/(np.max(image) - np.min(image))
-                    image = sigmoid(image, 0.05, 0.1)
+                    image = quick_norm(image)
+                    image = sigmoid(image, sigm[0], sigm[1])
+                    image = quick_norm(image)
                     image = np.array(image, np.float32)
 
                 else:
-                    image = Image.open(f)
+                    image = cv2.imread(f,0)
+                    image = quick_norm(image)
+                    image = np.array(image, np.float32)
                 
                 # Apply transformations
                 input_image = transform(image)
@@ -125,14 +129,9 @@ def predict_full_output(files, phases, root, sigm = False):
     return x, preds
 
 
-def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, sigm = False):
-
-    print(files)
-
-    img_features = []
-    img_pl_features = []
+def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, sigm = None):
     mod_files = glob(root + r'*.pt')
-
+    img_features = []
     sort_args = np.argsort([i.split(sep)[-1].split('_')[-1][:-3] for i in mod_files])
     mod_files = np.array(mod_files)[sort_args]
     with torch.no_grad():
@@ -154,15 +153,18 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, 
 
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
-                if sigm:
+                if sigm is not None:
                     image = cv2.imread(f,0)
-                    image = (image - np.min(image))/(np.max(image) - np.min(image))
-                    image = sigmoid(image, 0.05, 0.1)
+                    image = quick_norm(image)
+                    image = sigmoid(image, sigm[0], sigm[1])
+                    image = quick_norm(image)
                     image = np.array(image, np.float32)
 
 
                 else:
-                    image = Image.open(f)
+                    image = cv2.imread(f,0)
+                    image = quick_norm(image)
+                    image = np.array(image, np.float32)
                 # Apply transformations
                 input_image = transform(image)
                 input_image = input_image.unsqueeze(0)
@@ -234,13 +236,11 @@ def quick_fcmeans(features, num_clusters, m = 1.5, return_matrix = False):
     fuzzy_membership_matrix = fuzzy_membership_matrix.T
 
 
-    if return_matrix:
-        return fuzzy_membership_matrix 
 
     alpha = np.max(fuzzy_membership_matrix, axis=0)
     labels = np.argmax(fuzzy_membership_matrix, axis=0)
 
-    return labels, alpha
+    return labels, alpha, fuzzy_membership_matrix
 
 
 

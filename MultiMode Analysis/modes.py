@@ -83,6 +83,7 @@ def bec_multi(multi_split = 0.5, modelist = None, max_modes = 10):
     n = randint(1,max_modes)
     
     for i in range(n):
+        # print(n)
         newmode = modelist[randint(0,len(modelist))]
         all_bec = True
         while newmode in ms or all_bec:
