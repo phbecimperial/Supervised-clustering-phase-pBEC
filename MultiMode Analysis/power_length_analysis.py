@@ -125,7 +125,6 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
         #print(int(int(cx) - size[0]/2),int(int(cx) + size[0]/2))
         #print(int(int(cy) - size[0]/2),int(int(cy) + size[0]/2))
         #print(cx,cy)
-        # image_crop = sigmoid(image_crop, 0.01, 0.1)*255
         flag =  cv2.imwrite(root + r"\\" + 'Crop' + name + '.png', image_crop)
         #print(root + r'\\' + name + '.png')
 
@@ -697,7 +696,7 @@ import base64
 from bokeh.transform import linear_cmap
 from bokeh.palettes import Category10
 
-def interactive_scatter(x, y, img_files, labels_data):
+def interactive_scatter(x, y, img_files, labels_data, x_min, x_max):
     masked_files = img_files
     images_base64 = []
     for file_name in masked_files:
@@ -723,7 +722,7 @@ def interactive_scatter(x, y, img_files, labels_data):
     ))
 
     # Create Bokeh plot
-    plot = figure()
+    plot = figure(x_range = (x_min, x_max))
 
     # Add scatter plot
     plot.scatter(x='x', y='y', source=source, size=10, fill_color=linear_cmap('labels', palette, min(labels_data), max(labels_data)))
