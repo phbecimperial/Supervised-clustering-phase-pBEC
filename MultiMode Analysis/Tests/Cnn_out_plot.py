@@ -1,12 +1,8 @@
 import pickle as pkl
 import numpy as np
-from os.path import sep
-import cv2
-from glob import glob
 import matplotlib
 import matplotlib.pyplot as plt
 import select_files
-import scienceplots
 from scipy.interpolate import interp1d
 from generate_training import modelist
 import power_length_analysis

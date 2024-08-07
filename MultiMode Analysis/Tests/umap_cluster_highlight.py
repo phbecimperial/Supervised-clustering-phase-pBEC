@@ -1,26 +1,11 @@
-import cv2
-from scipy.ndimage import zoom
-import glob
 import numpy as np
-from scipy.ndimage import center_of_mass
-from os.path import sep
-import cv2
-from os.path import sep
-import umap
 import UMAP as cu
 import matplotlib.pyplot as plt
-import scienceplots
-from sklearn.cluster import KMeans
-import tqdm
-import gc
-from generate_training import modelist
-import matplotlib
 #import hdbscan
 # import UMAP_utils as uu
 import pickle as pkl
 import power_length_analysis
 import select_files
-from sklearn_extensions.fuzzy_kmeans import FuzzyKMeans
 import Meta_classifier
 
 

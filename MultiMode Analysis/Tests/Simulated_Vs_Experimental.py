@@ -1,16 +1,11 @@
 import matplotlib.pyplot as plt
-import numpy as np
 from LightPipes import *
-from scipy.ndimage import rotate, gaussian_filter, zoom, shift
-from scipy.stats import logistic
+from scipy.ndimage import rotate, zoom
 from scipy.special import erf
 from astropy.convolution import convolve, Gaussian2DKernel, TrapezoidDisk2DKernel
-import scienceplots
 from tqdm import tqdm
 import cv2
-from PIL import Image
 from os.path import sep
-from modes import mode_func
 from generate_training import noise_shift,quick_norm
 
 def sigmoid(x, k, c):

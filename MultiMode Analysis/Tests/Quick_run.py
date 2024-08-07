@@ -9,15 +9,13 @@ from torchvision.transforms import v2
 from mode_classifier import ResNet, ResidualBlock
 from tqdm import tqdm as tqdm
 from pickle_Dataset import pickle_Dataset
-import gc
-from torch.cuda.amp import autocast, GradScaler
 
 if __name__ == '__main__':
     t = time.localtime()
     save = True
     save_dir = r'C:\Users\Pouis\Documents\Uni Shit\Masters\Training Images'
     num_threads = 14
-    ims = generate_training.generate_data_multithreaded(num_threads, 30000 // num_threads, 2500*um, 500, generate_training.modelist, [160*um, 210*um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
+    ims = generate_training.generate_data_multithreaded(num_threads, 30000 // num_threads, 2500 * um, 500, generate_training.modelist, [160 * um, 210 * um], fringe_size=[0.5, 0.8], save=save, mult_las_split=0, save_dir=save_dir)
 
 
 

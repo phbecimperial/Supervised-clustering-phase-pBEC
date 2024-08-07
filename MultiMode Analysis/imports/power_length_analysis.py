@@ -80,7 +80,7 @@ def add_loss_rate(ax: plt.Axes, abs_path) -> callable:
 
     
 
-def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str):
+def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str, plot=True):
     """    New image cropping fn, parse in file of bec image and will take as center for all other images.
     V simple don't know why I didn't think of this before
 
@@ -101,13 +101,15 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
     # cx, cy = center_of_mass(bec_im**8)
 
     from Meta_classifier import sigmoid
-    plt.imshow(bec_im)
-    plt.show()
+    if plot:
+        plt.imshow(bec_im)
+        plt.show()
 
     bec_im = sigmoid((bec_im- bec_im.min())/(bec_im.max()-bec_im.min()), 0.05, 0.95)
 
-    plt.imshow(bec_im)
-    plt.show()
+    if plot:
+        plt.imshow(bec_im)
+        plt.show()
 
     cx,cy = center_of_mass(bec_im)
 

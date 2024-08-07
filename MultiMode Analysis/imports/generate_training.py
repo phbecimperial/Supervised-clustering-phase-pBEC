@@ -2,23 +2,18 @@
 Generates Training data
 """
 
-import random
-import lzma
 import os
-from os.path import sep
 import time
-import numpy as np
-import matplotlib.pyplot as plt
 import pickle as pkl
-from scipy.ndimage import rotate, gaussian_filter, zoom, shift
-from scipy.fft import fft2, fftshift
+from scipy.ndimage import rotate, gaussian_filter, zoom
 import cv2 as cv
 from modes import mode_func
-from astropy.convolution import convolve, Gaussian2DKernel, TrapezoidDisk2DKernel
+from astropy.convolution import convolve, TrapezoidDisk2DKernel
 from LightPipes import * 
 from tqdm import tqdm
 import torch
 from glob import glob
+import numpy as np
 
 def sigmoid(x, k, c):
     return 1/(1+np.exp(-(x - c) / k))
