@@ -19,11 +19,17 @@ def open_img_files(t_stamps_list: list[list[str]], root_dir: str):
 
         mint = int(t_stamps[0].split('_')[0] + t_stamps[0].split('_')[1])
         maxt = int(t_stamps[1].split('_')[0] + t_stamps[1].split('_')[1])
-
+ 
         files = glob(root_dir + sep + '*' + t_stamps[0].split('_')[0] + '*' + sep + '*.png') + glob(
             root_dir + sep + '*' + t_stamps[1].split('_')[0] + '*' + sep + '*.png')
         metas = glob(root_dir + sep + t_stamps[0].split('_')[0] + sep + '*meta.json') + glob(
             root_dir + sep + t_stamps[1].split('_')[0] + sep + '*meta.json')
+
+        # files = glob(root_dir + sep + '**' + sep + '*' + t_stamps[0].split('_')[0] + '*' + '.png', recursive = True) + glob(
+        #     root_dir + sep + '**' + sep + '*' + t_stamps[1].split('_')[0] + '*' + '.png', recursive = True)
+        # metas = glob(root_dir + sep + '**' + sep + '*' + t_stamps[0].split('_')[0] + '*' + '.json', recursive = True) + glob(
+        #     root_dir + sep + '**' + sep + '*' + t_stamps[0].split('_')[1] + '*' + '.json', recursive = True)
+
 
         for i, file in enumerate(files):
             day = (file.split(sep)[-1].split('_')[1])
