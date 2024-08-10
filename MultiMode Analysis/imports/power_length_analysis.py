@@ -205,7 +205,7 @@ def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig
 
 def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, bins = 10,
                       color = None, cmap = None, fig = None, ax = None, to_alpha = False,
-                      vs = [0,1], ret_stat = False):
+                      vs = [0,1], ret_stat = False, facecolor='darkgrey'):
 
     # density, xedges, yedges = np.histogram2d(data_x, 
     #                                data_y,
@@ -238,14 +238,18 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, bins = 10,
 
 
 
-    plot = ax.imshow(statistic.T, 
-            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-            aspect='auto', cmap=cust_cmap, origin='lower', vmin = vs[0], vmax = vs[1])
+    # plot = ax.imshow(statistic.T, 
+    #         extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+    #         aspect='auto', cmap=cust_cmap, origin='lower', vmin = vs[0], vmax = vs[1])
+
+    plot = ax.pcolor(bins[0], bins[1], statistic.T, cmap=cust_cmap, vmin = vs[0], vmax = vs[1])
+    ax.set_facecolor(facecolor)
 
     # plt.imshow(statistic.T, interpolation='bicubic',
     #            interpolation_stage='rgba', origin='lower', 
     #            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
     #            aspect='auto', cmap=cust_cmap)
+    
     
     if ret_stat:
         return fig, ax, plot, (statistic, x_edge, y_edge)
