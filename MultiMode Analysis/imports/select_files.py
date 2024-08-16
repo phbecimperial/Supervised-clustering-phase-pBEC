@@ -88,6 +88,23 @@ def select_stimulated_nd(data: dict) -> npt.ArrayLike:
         truth_list.append(i != 0)
     return np.array(truth_list)
 
+def select_stimulated_nd_and_exp(data: dict, threshold: int):
+    nd_filter_converter = [1, 0.36, 0.14, 0.034, np.nan, 0.005]
+    exposures = data['camera_integration_time']*nd_filter_converter[data['nd_filter']] #Correct the exposure times
+    
+    truth_list = []
+    for i in range(0, len(data['camera_integration_time'])):
+        exposure = data['camera_integration_time'][i]*nd_filter_converter[data['nd_filter'][i]]
+        truth_list.append(exposure<threshold)
+    return np.array(truth_list)
+
+
+def select_position(data: dict, position: float) -> npt.ArrayLike:
+    truth_list = []
+    for i in data['position']:
+        truth_list.append(i == position)
+    return np.array(truth_list)
+
 
 def select_line(files, point: list[float], height: float):
     m = (point[0][1] - point[1][1]) / (point[0][0] - point[1][0])

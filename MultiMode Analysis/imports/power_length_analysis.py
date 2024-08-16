@@ -20,6 +20,7 @@ import matplotlib.ticker as ticker
 from scipy.spatial import KDTree
 from scipy.interpolate import griddata, CloughTocher2DInterpolator, interp1d
 import tqdm
+import warnings
 
 
 def crop_save_image(files,size,root):
@@ -116,11 +117,17 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
     for f in glob(root + sep + '*'):
         os.remove(f)
 
+    cropped_files = []
+    fnames = []
+
     for f in files:
         image = cv2.imread(f, 0)
         if image is None:
             print(f)
         name = f.split(sep)[-1][:-4]
+
+
+
         
         image_crop = image[int(int(cx) - size[0]/2):int(int(cx) + size[0]/2),
             int(int(cy) - size[1]/2):int(int(cy) + size[1]/2)]
@@ -128,8 +135,16 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
         #print(int(int(cy) - size[0]/2),int(int(cy) + size[0]/2))
         #print(cx,cy)
         # image_crop = sigmoid(image_crop, 0.01, 0.1)*255
-        flag =  cv2.imwrite(root + r"\\" + 'Crop' + name + '.png', image_crop)
+        name = root + r"\\" + 'Crop' + name + '.png'
+        if len(name) > 259:
+            warnings.warn('PATH NAME TOO LONG. FILENAME HAS BEEN AUTOMATICALLY SHORTENED!')
+            name = name[:-(len(name) - 259 + 4)] + '.png'
+
+        flag =  cv2.imwrite(name, image_crop)
+        cropped_files.append(len(np.array(glob(root + sep + '*.png')))) 
+        fnames.append(root + r"\\" + 'Crop' + name + '.png')
         #print(root + r'\\' + name + '.png')
+    print('completed crop')
 
 
 

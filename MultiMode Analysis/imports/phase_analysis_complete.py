@@ -27,7 +27,7 @@ plt.rcParams.update({
 })
 
 
-def run_all(t_chunks, sys_path, crop_path, bec_path, threshold=1000):
+def run_all(t_chunks, sys_path, crop_path, bec_path, position_index, threshold=1000):
     image_dir = sys_path
     #Make new folder or everything will be deleted
     crop_dir = sys_path + crop_path
@@ -86,6 +86,11 @@ def run_all(t_chunks, sys_path, crop_path, bec_path, threshold=1000):
     # plt.show()
 
 
+    if 'position' in data.keys():
+        position = np.unique(data['position'])[position_index]
+        pos_mask = select_files.select_position(data, position)
 
-    return data, stim_mask
+    mask = stim_mask & pos_mask
+
+    return data, mask
 
