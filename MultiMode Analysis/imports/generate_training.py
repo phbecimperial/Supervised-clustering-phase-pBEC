@@ -2,18 +2,23 @@
 Generates Training data
 """
 
+import random
+import lzma
 import os
+from os.path import sep
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 import pickle as pkl
-from scipy.ndimage import rotate, gaussian_filter, zoom
+from scipy.ndimage import rotate, gaussian_filter, zoom, shift
+from scipy.fft import fft2, fftshift
 import cv2 as cv
 from modes import mode_func
-from astropy.convolution import convolve, TrapezoidDisk2DKernel
+from astropy.convolution import convolve, Gaussian2DKernel, TrapezoidDisk2DKernel
 from LightPipes import * 
 from tqdm import tqdm
 import torch
 from glob import glob
-import numpy as np
 
 def sigmoid(x, k, c):
     return 1/(1+np.exp(-(x - c) / k))
@@ -51,7 +56,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         # outputs = []
         amps = 0.3 + np.random.random(len(comb))*0.7
         amps = amps/max(amps)
-        shifts = np.random.random(2)*dim/16 - dim/32
+        shifts = np.random.random(2)*dim/32 - dim/64
 
         
         # w = np.random.random(1)*(max(w0) - min(w0)) + min(w0)
@@ -65,11 +70,11 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
             to_squash = quick_norm(Intensity(addbeam))
 
             if not (mode['mode'][0] == mode['mode'][1] == 0):
-                to_squash = zoom(to_squash, [np.random.randint(50,100)/100,1])
+                to_squash = zoom(to_squash, [np.random.randint(70,100)/100,1])
             
             to_squash = to_squash[:,int((to_squash.shape[1] - to_squash.shape[0])/2):int((to_squash.shape[1] + to_squash.shape[0])/2)]
 
-            trap = TrapezoidDisk2DKernel(np.random.randint(1,10), np.random.randint(15, 1000)/100,)
+            trap = TrapezoidDisk2DKernel(np.random.randint(1,30), np.random.randint(15, 1000)/100,)
             # trap = TrapezoidDisk2DKernel(10, 0.0000)
             # print(trap.shape)
 
@@ -83,7 +88,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
 
 
             if mode['angle'] is not False:
-                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-30,30), reshape=False)
+                addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-15,15), reshape=False)
             else:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
@@ -121,7 +126,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         #                         x_shift=np.random.random()* 4 * w - 2 * w,
         #                         y_shift=np.random.random()* 4 * w - 2* w)
 
-        beam = Forvard(beam, z=0.03*cm)
+        # beam = Forvard(beam, z=5 *cm)
 
         aperture_radius = w + np.random.random()*size
         aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
@@ -135,9 +140,9 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
     
 
         im = quick_norm(im)
-        # im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,20))
+        im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,25))
         im_max = np.max(im)
-        im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
+        # im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
         im = 255 * quick_norm(im)
 
@@ -145,7 +150,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         im_crop = int(im.shape[0]/4)
         crop_im = im[im_mid - im_crop:im_mid + im_crop, im_mid - im_crop:im_mid + im_crop]
 
-        im = zoom(crop_im, 224/(im.shape[0]/2))
+        im = zoom(crop_im, 170/(im.shape[0]/2))
         im = np.round(im, decimals=1) / 255
 
 
@@ -185,10 +190,7 @@ def generate_data_multithreaded(
         num_threads, num, size, dim, modes, w0, noise=1, fringe_size=[0.2,0.5],
         wavelen=950*nm, spec_num=[0, 20], mult_las_split=0.5, spec_rad=[1*um, 7*um], save=True, 
         save_dir = None, mode_func = mode_func, sigm = None):
-    save = True
-    if save:
-        for f in glob(save_dir + r'\*'):
-            os.remove(f)
+
     args_list = [(
         i, num, size, dim, modes, w0, noise, fringe_size, 
         wavelen, spec_num, mult_las_split, spec_rad, save, 

@@ -94,11 +94,15 @@ def predict_full_output(files, phases, root, sigm = None):
                 # Load the image
                 #image_path = r'C:\Data\Phase\pbecCropc_20240222_210313_42951.0_0.08428571428571428_950.8663940429688_.bmp'
                 if sigm is not None:
+                    import matplotlib.pyplot as plt
                     image = cv2.imread(f,0)
                     image = quick_norm(image)
+                    # plt.imshow(image)
                     image = sigmoid(image, sigm[0], sigm[1])
+                    # plt.imshow(image)
                     image = quick_norm(image)
                     image = np.array(image, np.float32)
+                    # plt.show()
 
                 else:
                     image = cv2.imread(f,0)
@@ -167,6 +171,9 @@ def predeict_images_CNN(files, root, phases = 10,powers = None, lengths = None, 
                     image = np.array(image, np.float32)
                 # Apply transformations
                 input_image = transform(image)
+                import matplotlib.pyplot as plt
+                # plt.imshow(input_image.permute(1,2,0))
+                # plt.show()
                 input_image = input_image.unsqueeze(0)
 
                 model.eval()
