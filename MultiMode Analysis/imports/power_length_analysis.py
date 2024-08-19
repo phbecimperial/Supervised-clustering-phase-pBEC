@@ -19,8 +19,10 @@ import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 from scipy.spatial import KDTree
 from scipy.interpolate import griddata, CloughTocher2DInterpolator, interp1d
-import tqdm
+from tqdm import tqdm
 import warnings
+from joblib import Parallel, delayed
+
 
 
 def crop_save_image(files,size,root):
@@ -79,6 +81,27 @@ def add_loss_rate(ax: plt.Axes, abs_path) -> callable:
 
     return xto_thermal
 
+
+def bec_crop_centre_loop(f, cx, cy, size: list[int, int], root: str):
+    image = cv2.imread(f, 0)
+    if image is None:
+        print(f)
+    name = f.split(sep)[-1][:-4]
+
+    image_crop = image[int(int(cx) - size[0]/2):int(int(cx) + size[0]/2),
+        int(int(cy) - size[1]/2):int(int(cy) + size[1]/2)]
+    #print(int(int(cx) - size[0]/2),int(int(cx) + size[0]/2))
+    #print(int(int(cy) - size[0]/2),int(int(cy) + size[0]/2))
+    #print(cx,cy)
+    # image_crop = sigmoid(image_crop, 0.01, 0.1)*255
+    name = root + r"\\" + 'Crop' + name + '.png'
+    if len(name) > 259:
+        warnings.warn('PATH NAME TOO LONG. FILENAME HAS BEEN AUTOMATICALLY SHORTENED!')
+        name = name[:-(len(name) - 259 + 4)] + '.png'
+
+    flag =  cv2.imwrite(name, image_crop)
+
+
     
 
 def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: str, plot=True):
@@ -117,10 +140,10 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
     for f in glob(root + sep + '*'):
         os.remove(f)
 
-    cropped_files = []
-    fnames = []
+    #cropped_files = []
+    #fnames = []
 
-    for f in files:
+    for f in tqdm(files, leave=True):
         image = cv2.imread(f, 0)
         if image is None:
             print(f)
@@ -141,12 +164,53 @@ def bec_crop_centre(bec_file: str, files: list[str], size: list[int,int], root: 
             name = name[:-(len(name) - 259 + 4)] + '.png'
 
         flag =  cv2.imwrite(name, image_crop)
-        cropped_files.append(len(np.array(glob(root + sep + '*.png')))) 
-        fnames.append(root + r"\\" + 'Crop' + name + '.png')
+        #cropped_files.append(len(np.array(glob(root + sep + '*.png')))) 
+        #fnames.append(root + r"\\" + 'Crop' + name + '.png')
         #print(root + r'\\' + name + '.png')
     print('completed crop')
 
+def bec_crop_centre_fast(bec_file: str, files: list[str], size: list[int,int], root: str, plot=True):
+    """    New image cropping fn, parse in file of bec image and will take as center for all other images.
+    V simple don't know why I didn't think of this before
 
+    Args:
+        bec_file (str): File name for image of bec
+        files (list[str]): list of files to crop
+        size (list[int,int]): dimensions of cropeed image
+        root (str): directory to save images
+    """
+    bec_im = cv2.imread(bec_file, 0)
+
+    # cx, cy = center_of_mass(bec_im**8)
+    ravel_arg = np.argmax(bec_im)
+    cx, cy = np.unravel_index(ravel_arg, bec_im.shape)
+    bec_im[:int(cx - size[0]/2) ,:int(cy - size[1]/2)] = 0
+    bec_im[int(cx + size[0]/2):, int(cy + size[1]/2):] = 0
+
+    # cx, cy = center_of_mass(bec_im**8)
+
+    from Meta_classifier import sigmoid
+    if plot:
+        plt.imshow(bec_im)
+        plt.show()
+
+    bec_im = sigmoid((bec_im- bec_im.min())/(bec_im.max()-bec_im.min()), 0.05, 0.95)
+
+    if plot:
+        plt.imshow(bec_im)
+        plt.show()
+
+    cx,cy = center_of_mass(bec_im)
+
+    for f in glob(root + sep + '*'):
+        os.remove(f)
+
+    #cropped_files = []
+    #fnames = []
+
+    Parallel(n_jobs=-1, verbose=1)(delayed(bec_crop_centre_loop)(f, cx, cy, size, root) for f in files)
+
+    print('completed crop')
 
 def fit_pca(lengths: npt.ArrayLike, pcas: npt.ArrayLike):
     """Fits measured cavity lengths to PCA values
@@ -536,7 +600,38 @@ def data_from_metas(metas, files):
         data.update({key: np.array(val)})
     return data
 
+from generate_training import quick_norm
+def process_file(meta_file, image_file):
+    with open(meta_file, 'r') as f:
+        meta = json.load(f)    
+    data = {}
 
+    for key, val in meta['parameters'].items():
+        data[key] = val
+    
+    im = cv2.imread(image_file, 0)
+    t = meta['ts'].split('_')[0] + meta['ts'].split('_')[1]
+    data['t'] = int(t)
+    data['image'] = im
+    data['flat_image'] = quick_norm(im).flatten()
+    return data
+
+def data_from_metas_fast(metas, files):
+    results = Parallel(n_jobs=-1)(delayed(process_file)(meta, file) for meta, file in zip(metas, files))
+
+    param_dict = {key: [] for key in results[0].keys()}
+    param_dict.update({'file': []})
+
+    for result, file in zip(results, files):
+        for key, val in result.items():
+            if key not in param_dict:
+                param_dict[key] = []
+            param_dict[key].append(val)
+        param_dict['file'].append(file)
+
+    data = {key: np.array(val) for key, val in param_dict.items()}
+    
+    return data
     
     
     

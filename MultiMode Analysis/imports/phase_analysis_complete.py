@@ -27,7 +27,7 @@ plt.rcParams.update({
 })
 
 
-def run_all(t_chunks, sys_path, crop_path, bec_path, position_index, threshold=1000):
+def run_all(t_chunks, sys_path, crop_path, bec_path, position_index=None, threshold=1000):
     image_dir = sys_path
     #Make new folder or everything will be deleted
     crop_dir = sys_path + crop_path
@@ -36,11 +36,11 @@ def run_all(t_chunks, sys_path, crop_path, bec_path, position_index, threshold=1
     bec_file = sys_path + bec_path
     #print(bec_file)
     print(len(files))
-    power_length_analysis.bec_crop_centre(bec_file, files, [170, 170], crop_dir, plot=False)
+    power_length_analysis.bec_crop_centre_fast(bec_file, files, [170, 170], crop_dir, plot=False)
 
     files = np.array(glob(crop_dir + sep + '*.png'))
     #print(len(files))
-    data = power_length_analysis.data_from_metas(metas, files)
+    data = power_length_analysis.data_from_metas_fast(metas, files)
 
     stim_mask = select_files.select_stimulated_exp_from_filename(data['file'], threshold)
 
@@ -89,8 +89,7 @@ def run_all(t_chunks, sys_path, crop_path, bec_path, position_index, threshold=1
     if 'position' in data.keys():
         position = np.unique(data['position'])[position_index]
         pos_mask = select_files.select_position(data, position)
-
-    mask = stim_mask & pos_mask
+        mask = stim_mask & pos_mask
 
     return data, mask
 

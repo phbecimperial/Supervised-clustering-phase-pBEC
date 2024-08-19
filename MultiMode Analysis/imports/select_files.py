@@ -89,7 +89,7 @@ def select_stimulated_nd(data: dict) -> npt.ArrayLike:
     return np.array(truth_list)
 
 def select_stimulated_nd_and_exp(data: dict, threshold: int):
-    nd_filter_converter = [1, 0.36, 0.14, 0.034, np.nan, 0.005]
+    nd_filter_converter = np.array([1, 0.36, 0.14, 0.034, np.nan, 0.005])
     exposures = data['camera_integration_time']*nd_filter_converter[data['nd_filter']] #Correct the exposure times
     
     truth_list = []
