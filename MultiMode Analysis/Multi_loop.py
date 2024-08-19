@@ -13,6 +13,7 @@ import generate_training
 
 def Training(model, epochs, label, optimizer, train_loader, val_loader, history, criterion, save_path, stop_check = 15):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = 'cpu'
     model.to(device)
     iter = tqdm(range(epochs), leave=True)
     strikes = 0
@@ -29,8 +30,8 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
 
             inputs, keys = inputs.to(device), torch.select(keys, 1, label).to(device)
             with autocast():
-                #inputs = inputs.to(memory_format=torch.channels_last)
-                #model=model.to(memory_format=torch.channels_last)
+                # inputs = inputs.to(memory_format=torch.channels_last)
+                # model=model.to(memory_format=torch.channels_last)
                 outputs = model(inputs)
                 optimizer.zero_grad()
 
@@ -156,7 +157,7 @@ if __name__ == "__main__":
         "val_loss": []
         }
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = 0.01, momentum = 0)
-        model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion)
+        model, history = Training(model, epochs, i, optimizer, train_loader, val_loader, history, criterion=criterion, save_path=None)
 
         with open(r'MultiMode Analysis\Models\Apr16_Res_Class_' + str(i) + 'history', 'wb') as f:
             pkl.dump(history, f)

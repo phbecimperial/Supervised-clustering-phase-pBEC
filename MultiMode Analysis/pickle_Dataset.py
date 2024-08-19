@@ -23,8 +23,9 @@ class pickle_Dataset(data.Dataset):
 
         with open(path, 'rb') as f:
             im, key = pickle.load(f)
-            im = np.asarray(im, np.float32)
-            im = self.transforms(im)
+        im = np.asarray(im, np.float32)
+        im = self.transforms(im)
+
 
         return (im, torch.from_numpy(np.array(key, np.float32)))
 
