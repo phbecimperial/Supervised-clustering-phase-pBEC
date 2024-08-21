@@ -51,10 +51,13 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         beam = Begin(size=size, labda=wavelen, N=dim)
         beam1 = beam2 = beam
         comb, outputs = mode_func(mult_las_split, mode_params, len(mode_params))
+        # print(comb)
         # comb = modes[np.random.randint(0, len(modes)-1)]
         # comb = [1]
         # outputs = []
-        amps = 0.3 + np.random.random(len(comb))*0.7
+
+        # Randomly generates amplitudes to scale each mode
+        amps = 0.7 + np.random.random(len(comb))*0.3
         amps = amps/max(amps)
         shifts = np.random.random(2)*dim/32 - dim/64
 
@@ -65,43 +68,54 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
             if mode['diameter'] is not False:
                 w = np.random.random(1)*(max(mode['diameter']) - min(mode['diameter'])) + min(mode['diameter'])
 
+            # Adds mode to image and normalises
             addbeam = GaussBeam(beam, w0=w, n=mode['mode'][0], m=mode['mode'][1], LG=mode['LG'])
-
             to_squash = quick_norm(Intensity(addbeam))
 
+            # If not symmetric mode (i.e 1,1 or 0,0) polynomial is streched along 1st axis
             if not (mode['mode'][0] == mode['mode'][1] == 0):
                 to_squash = zoom(to_squash, [np.random.randint(70,100)/100,1])
             
             to_squash = to_squash[:,int((to_squash.shape[1] - to_squash.shape[0])/2):int((to_squash.shape[1] + to_squash.shape[0])/2)]
 
-            trap = TrapezoidDisk2DKernel(np.random.randint(1,30), np.random.randint(15, 1000)/100,)
+            # Uncomment for convolution with top hat
+            # trap = TrapezoidDisk2DKernel(np.random.randint(1,10), np.random.randint(15, 1000)/100,)
+            # to_squash = convolve(to_squash, trap, boundary= None)
+
+
             # trap = TrapezoidDisk2DKernel(10, 0.0000)
             # print(trap.shape)
 
-            to_squash = convolve(to_squash, trap, boundary= None)
-
+            
+            # Uncomment for brightening center of image with gaussian profile
             # gsize = np.random.randint(30, 100)
             # gaus = Gaussian2DKernel(gsize, gsize, x_size = to_squash.shape[0], y_size = to_squash.shape[1])._array
             # to_squash = to_squash*gaus
 
+            # Scales to desired dimension
             addbeam.field = zoom(to_squash, [dim/to_squash.shape[0],dim/to_squash.shape[1]])
 
-
+            # If angle specified in mode params, rotate image to that angle within a random variation of +/- 15 deg
             if mode['angle'] is not False:
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = mode['angle'] + np.random.randint(-15,15), reshape=False)
             else:
+                # If no angle specified, rotates randomly 
                 addbeam.field = rotate(np.absolute(addbeam.field), angle = np.random.randint(0,360), reshape=False)
 
+            # Normalises and scales to random amplitude 
             addbeam.field = quick_norm(addbeam.field)
             addbeam = IntAttenuator(addbeam, amp)
 
             # addbeam.field = Intensity(addbeam)
+            # Adds mode to image
             beam.field += addbeam.field
         # beam = Normal(beam)
 
+        # Shifts image
         beam.field = np.roll(np.array(beam.field), int(shifts[0]), 0)
         beam.field = np.roll(np.array(beam.field), int(shifts[1]), 1)
 
+        # Uncomment to add fringes
         # f_angle = np.random.random() * 2 * np.pi
         # f_size =  min(fringe_size) + np.random.random()*np.diff(fringe_size)[0]
         # x_fringe = 1/f_size*100*um*np.cos(f_angle)
@@ -121,29 +135,34 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         # beam = Normal(beam)
         # beam = Fresnel(beam, z=0.2*cm)
 
+        # Uncomment to add crular screens to field, resulting in fringes from fourier transform when propagating
         # for j in range(np.random.randint(min(spec_num), max(spec_num))):
         #     beam = CircScreen(beam, R = min(spec_rad) + np.random.random()*np.diff(spec_rad)[0],
         #                         x_shift=np.random.random()* 4 * w - 2 * w,
         #                         y_shift=np.random.random()* 4 * w - 2* w)
+        # beam = Forvard(beam, z=0.2 *cm)
 
-        # beam = Forvard(beam, z=5 *cm)
-
-        aperture_radius = w + np.random.random()*size
-        aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
+        # Uncomment to add circular aperture
+        # aperture_radius = w + np.random.random()*size
+        # aperture_pos = np.random.random(2)*aperture_radius - aperture_radius/2
         #beam = CircAperture(beam, R = aperture_radius, x_shift=aperture_pos[0], y_shift=aperture_pos[1])
         # im = rotate(Intensity(beam)/np.max(Intensity(beam)), angle = np.random.randint(0,360), reshape=False)
 
+        # Normalises and adds noise
         im = quick_norm(Intensity(beam))
         im += im * np.random.random(im.shape)/10
+
+        # Applies sigmoid function to image
         if sigm is not None:
             im = sigmoid(im, sigm[0], sigm[1])
     
-
+        # Normalises and warps image
         im = quick_norm(im)
         im = noise_shift(im, (im.shape[0]/500)**2*np.random.randint(1,25))
         im_max = np.max(im)
         # im += im * np.random.random(im.shape)/10# + np.random.random()*0.5*np.random.normal(im_max/100, np.std(im), im.shape)
 
+        # scales correct size and rounds to emulate 8-bit bitmap files
         im = 255 * quick_norm(im)
 
         im_mid = int(im.shape[0]/2)
@@ -154,6 +173,7 @@ def generate_data(num, size, dim, mode_params, w0, noise=1, fringe_size=[0.2,0.5
         im = np.round(im, decimals=1) / 255
 
 
+        # saves image
         if save:
             with open(save_dir + r'\training_image' + '@' +
                       str(time.time()) + '@' + ''.join(

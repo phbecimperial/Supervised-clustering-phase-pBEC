@@ -3,7 +3,7 @@ import pickle as pkl
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 from mode_classifier import ResNet, ResidualBlock
-from tqdm import tqdm as tqdm
+from tqdm.autonotebook import tqdm
 from pickle_Dataset import pickle_Dataset
 import gc
 from torch.cuda.amp import autocast, GradScaler
@@ -27,7 +27,7 @@ def Training(model, epochs, label, optimizer, train_loader, val_loader, history,
         total = 0
         total_loss = 0
         for inputs, keys in train_loader:
-
+            # print(keys)
             inputs, keys = inputs.to(device), torch.select(keys, 1, label).to(device)
             with autocast():
                 # inputs = inputs.to(memory_format=torch.channels_last)

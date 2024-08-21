@@ -1,3 +1,5 @@
+import sys
+sys.path.append('imports')
 from generate_training import generate_data_multithreaded
 import dill
 from socket import gethostname

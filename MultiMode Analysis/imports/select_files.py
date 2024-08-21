@@ -100,6 +100,14 @@ def select_stimulated_nd_and_exp(data: dict, threshold: int):
 
 
 def select_position(data: dict, position: float) -> npt.ArrayLike:
+    """Selects files of a given displacement
+    Args:
+        data (dict): Data dictionary, of the type returned by data_from_metas
+        position (float): Displacement of pump spot
+
+    Returns:
+        npt.ArrayLike: Truth array to be used for array masking
+    """
     truth_list = []
     for i in data['position']:
         truth_list.append(i == position)

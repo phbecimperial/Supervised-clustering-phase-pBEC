@@ -56,10 +56,7 @@ def mode_func(multi_split = 0.5, modelist = None, max_modes = 10, single_mode = 
 
     ms = []
     for i in range(n):
-        if multi_split > random() and i == 1:
-            newmode = [0,0]
-        else:
-            newmode = modelist[randint(0,len(modelist))]
+        newmode = modelist[randint(0,len(modelist))]
         
         while newmode in ms:
             newmode = modelist[randint(0,len(modelist))]
