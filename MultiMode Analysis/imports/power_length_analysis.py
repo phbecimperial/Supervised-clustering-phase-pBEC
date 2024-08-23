@@ -233,7 +233,7 @@ def fit_pca(lengths: npt.ArrayLike, pcas: npt.ArrayLike):
 
 def grid_plot(nplots ,ncols, nrows, wspace, hspace = 0.4, tick_spacing = 10, fig = None):
     """Creates a grid of axes, can handle odd numbers of rows and computes spacing for remainder.
-
+    second element in grid can be used for colorbar (i.e gs[1])
     Args:
         nplots (_type_): _description_
         ncols (_type_): _description_
@@ -317,12 +317,12 @@ def plot_2d_stat_hist(data_x, data_y, alphas, x_range, y_range, bins = 10,
 
 
 
-    # plot = ax.imshow(statistic.T, 
-    #         extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
-    #         aspect='auto', cmap=cust_cmap, origin='lower', vmin = vs[0], vmax = vs[1])
+    plot = ax.imshow(statistic.T, 
+            extent=(x_range[0], x_range[1], y_range[0], y_range[1]),
+            aspect='auto', cmap=cust_cmap, origin='lower', vmin = vs[0], vmax = vs[1])
 
-    plot = ax.pcolor(bins[0], bins[1], statistic.T, cmap=cust_cmap, vmin = vs[0], vmax = vs[1])
-    ax.set_facecolor(facecolor)
+    # plot = ax.pcolor(bins[0], bins[1], statistic.T, cmap=cust_cmap, vmin = vs[0], vmax = vs[1])
+    # ax.set_facecolor(facecolor)
 
     # plt.imshow(statistic.T, interpolation='bicubic',
     #            interpolation_stage='rgba', origin='lower', 

@@ -81,6 +81,37 @@ def select_stimulated_exp_from_filename(files: list[str], threshold: int):
         truth_list.append(float(i.split(sep)[-1].split('_')[3]) < threshold)
     return np.array(truth_list)
 
+def select_stimulated_mean_pixel(data: dict, threshold: int):
+    """Selects images based on mean pixel value, Stimulated emission has lower mean than thermal
+
+    Args:
+        data (dict): Data dictionary of the type given by data from metas
+        threshold (int): threshold below which are stimulated
+    """
+    truth_list = []
+    for i in data['flat_image']:
+        truth_list.append(threshold > np.mean(i)*255)
+    
+    return np.array(truth_list)
+    
+def select_stimulated_output_power(data: dict, threshold: float):
+    """Selects images based on reading of power meter
+
+    Args:
+        data (dict): Data dictionary of the type given by data from metas
+        threshold (int): threshold above which are stimulated
+
+    Returns:
+        np.NDarray[bool]: Array of thruth values
+    """
+    
+    truth_list = []
+    for i in data['meter_reading']:
+        truth_list.append( i > threshold)
+    return np.array(truth_list)
+
+
+
 
 def select_stimulated_nd(data: dict) -> npt.ArrayLike:
     truth_list = []

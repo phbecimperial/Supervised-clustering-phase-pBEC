@@ -16,7 +16,7 @@ import cv2 as cv
 from modes import mode_func
 from astropy.convolution import convolve, Gaussian2DKernel, TrapezoidDisk2DKernel
 from LightPipes import * 
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 import torch
 from glob import glob
 
