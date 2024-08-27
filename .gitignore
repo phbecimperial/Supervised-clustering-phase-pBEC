@@ -1,7 +1,12 @@
-Multimode Analysis/Training_images
+**/Training_images
 *.pkl.gz
 **/data
 **/__pycache__
-**/Models
-**.pyc
-
+**/Training_images_2
+**.xml
+**.iml
+**.pkl
+**.pt
+**/Models/**
+**.npy
+**fcm**

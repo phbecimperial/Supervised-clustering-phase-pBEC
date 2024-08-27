@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.nn import Module as M
 from tqdm import tqdm as tqdm
 
-
+dropout = 0.4
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride = 1, downsample = None):
@@ -26,6 +26,7 @@ class ResidualBlock(nn.Module):
                         nn.BatchNorm2d(out_channels))
         self.downsample = downsample
         self.relu = nn.ReLU()
+        #self.relu = nn.Sequential(nn.ReLU(), nn.Dropout2d(dropout))
         self.out_channels = out_channels
 
     def forward(self, x):
@@ -53,10 +54,17 @@ class ResNet(nn.Module):
                         nn.ReLU())
         self.maxpool = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         self.layer0 = self._make_layer(block, 64, layers[0], stride = 1)
+<<<<<<<< HEAD:MultiMode Analysis/resnet.py
         self.layer1 = self._make_layer(block, 128, layers[1], strides)
         self.layer2 = self._make_layer(block, 256, layers[2], strides)
         self.layer3 = self._make_layer(block, 512, layers[3], strides)
         self.avgpool = nn.AvgPool2d(kernel_size, stride=1)
+========
+        self.layer1 = self._make_layer(block, 128, layers[1], stride = 2)
+        self.layer2 = self._make_layer(block, 256, layers[2], stride = 2)
+        self.layer3 = self._make_layer(block, 512, layers[3], stride = 2)
+        self.avgpool = nn.AvgPool2d(7, stride=1)
+>>>>>>>> Clean-Branch:MultiMode Analysis/imports/mode_classifier.py
         self.fc1 = nn.LazyLinear(512)
         self.fc2 = nn.Linear(512, num_classes)
         
@@ -89,6 +97,10 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
+<<<<<<<< HEAD:MultiMode Analysis/resnet.py
+========
+
+>>>>>>>> Clean-Branch:MultiMode Analysis/imports/mode_classifier.py
 
         return x
 
